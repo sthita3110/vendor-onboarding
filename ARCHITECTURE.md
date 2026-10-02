@@ -153,7 +153,7 @@ Output: `{status, sub_state, reasons[] (rule_ids ordered by severity), summary (
 | Status model | 3 top-level statuses, Pending split into 2 sub-states | Keeps brief's vocabulary; different owners, clocks, messages | Single "Pending" | Single bucket mixes "waiting on them" with "waiting on us" |
 | Decision maker | Deterministic rule engine + human | Explainable, testable, auditable | LLM decides | LLM decisions are non-reproducible and hard to defend |
 | Name matching | Tiered deterministic normalization, anchored on tax doc | No arbitrary threshold; each match explainable | Fuzzy score / LLM judge | Some legitimate variations go to review (see RULES.md §2) |
-| Document reading | Claude native PDF/image input | Handles text PDFs and scans without an OCR pipeline | Tesseract OCR + text LLM | Single-vendor dependency, mitigated by caching |
+| Document reading | OpenAI model with native PDF/image input + strict JSON-schema structured output | Handles text PDFs and scans without an OCR pipeline; schema-enforced output | Tesseract OCR + text LLM | Single-vendor dependency, mitigated by caching; provider is swappable because the LLM only fills `DocumentInput` |
 | Orchestration | Plain Python pipeline in a background thread, state in SQLite | Simple, debuggable, one process | Celery/Redis, Temporal, n8n | No distributed retries — irrelevant at this scale |
 | Live updates | Frontend polls run status every ~1s | Most robust through hosting proxies | SSE / WebSocket | ~1s latency; fine for 10 stages |
 | Rules | Python functions with IDs + JSON policy config | Explainable, unit-testable, versioned | Rules engine / DSL | Rule changes need a deploy |
@@ -167,7 +167,7 @@ Output: `{status, sub_state, reasons[] (rule_ids ordered by severity), summary (
 ## 7. Tech stack
 
 - **Backend:** Python 3.12, FastAPI, SQLAlchemy/SQLModel, SQLite, Pydantic schemas
-- **AI:** Anthropic Claude API (`claude-sonnet-5-5` for classification/extraction; same or smaller model for prose), structured JSON output, temperature 0
+- **AI:** OpenAI API — vision-capable model for classification/extraction (configurable via `OPENAI_MODEL`), strict JSON-schema structured outputs, temperature 0 where the model supports it
 - **PDF:** `pypdf` (text layer for grounding), `reportlab` (test document generation), Pillow (rasterized "scanned" test doc)
 - **Frontend:** React + Vite + TypeScript + Tailwind + shadcn/ui
 - **Tests:** pytest — unit tests for validators/normalization, golden end-to-end tests per demo case

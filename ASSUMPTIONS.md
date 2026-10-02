@@ -36,7 +36,7 @@ Adapters implement the same interface a real integration would; swapping a mock 
 - **Name matching** sends legitimate-but-unattested variations (bank-truncated names, unregistered trade names, form typos) to review. Accepted under the false-approval vs false-hold cost asymmetry.
 - **No document tamper / forgery detection.** Extraction trusts the document's visible content; grounding only verifies the value exists in the text layer.
 - **Image-only documents** can't be grounded against a text layer; their values are marked `source: image`.
-- **LLM dependency:** extraction requires the Claude API. Mitigated by caching by file hash and fail-closed behavior (outage → review, never approval).
+- **LLM dependency:** extraction requires the OpenAI API. Mitigated by caching by file hash and fail-closed behavior (outage → review, never approval).
 - **No real auth or roles.** Single access passcode for the demo; reviewer identity is a display name.
 - **Single-process, SQLite.** Appropriate for demo scale (tens of vendors), not for concurrent multi-team use.
 - **Sample data is fictitious**, generated to be realistic in structure (correct GSTIN checksums, valid PAN structure, valid IFSC format, plausible documents).
