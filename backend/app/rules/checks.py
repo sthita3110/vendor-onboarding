@@ -73,6 +73,15 @@ KEY_FIELDS: dict[str, list[tuple[str, str]]] = {
 }
 
 
+def cap(text: str) -> str:
+    return text[:1].upper() + text[1:]
+
+
+def lower_first(text: str) -> str:
+    """Lowercase the first letter unless the first word is an acronym (GSTIN, IFSC, PAN)."""
+    return text if text[:2].isupper() else text[:1].lower() + text[1:]
+
+
 def mask(account: str | None) -> str:
     a = clean_account(account)
     return f"••••{a[-4:]}" if len(a) >= 4 else a
@@ -151,7 +160,7 @@ class RunState:
     def blocked(self, rule_id: str, by: str, subject: str | None = None) -> CheckResult:
         label = RULES[rule_id].name if subject is None else subject
         return self._add(
-            rule_id, "blocked", f"Not checked: {label[0].lower() + label[1:]}",
+            rule_id, "blocked", f"Not checked: {lower_first(label)}",
             subject=subject, blocked_by=by,
             detail=f"Skipped because of an earlier finding ({by}).",
         )
@@ -209,7 +218,7 @@ def stage_doc_processing(s: RunState) -> None:
                              f"Please upload your {label}."),
             )
         else:
-            s.passed("DOC-01", f"{label[0].upper() + label[1:]} is the right document type", subject=label, evidence=ev)
+            s.passed("DOC-01", f"{cap(label)} is the right document type", subject=label, evidence=ev)
 
 
 # ---------- stage 3: extraction ----------
@@ -263,11 +272,11 @@ def stage_validation(s: RunState) -> None:
         v = validate(value)
         ev = {"field": path, "value": value}
         if v.valid:
-            s.passed(rule_id, f"{label} format is valid", subject=label, evidence=ev)
+            s.passed(rule_id, f"{cap(label)} format is valid", subject=label, evidence=ev)
         else:
             s.form_blockers[path] = rule_id
             s.failed(
-                rule_id, f"{label} is invalid", subject=label, detail=v.reason, evidence=ev,
+                rule_id, f"{cap(label)} is invalid", subject=label, detail=v.reason, evidence=ev,
                 vendor_text=f"The {label} you entered ({value}) isn't valid: {v.reason}. Please check and correct it.",
             )
 
