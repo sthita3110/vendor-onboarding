@@ -1,0 +1,50 @@
+# Vendor Onboarding — Assumptions & Limitations
+
+The brief asks candidates to treat ambiguity as part of the exercise: make an assumption, note it, move on. This is that note.
+
+## Scope assumptions
+
+| # | Assumption | Rationale |
+|---|---|---|
+| A1 | **Edge cases are self-defined.** The brief supplies none for PS-2; H1 and E1–E4 are my design (see [RULES.md](RULES.md) §5). | Brief: "Design and build 2–4 edge cases of your own." |
+| A2 | **India only.** All vendors are Indian entities paid in INR to Indian bank accounts. | Depth over breadth. GSTIN embeds the PAN and a state code, and the PAN encodes holder type — rich, deterministic cross-field checks within one coherent regulatory context. Multi-country support is an adapter/validator extension, not a redesign. |
+| A3 | **"Pending" has two sub-states** — Awaiting vendor and Internal review — under the brief's three statuses. | Different owner, clock, and message. |
+| A4 | **Clean vendors are auto-approved.** | All checks are deterministic and logged. In production I would start in *shadow mode* (system recommends, human approves) to measure agreement before enabling auto-approval. |
+| A5 | **"Communicate back what's needed" is reason-dependent.** Internal-review and rejected cases receive a neutral or generic message. | Disclosing a fraud signal ("bank name doesn't match", "you're on a list") teaches bad actors what to fix. |
+| A6 | **No expiry checks in the MVP.** None of the mandatory Indian documents (GST certificate, PAN card, cancelled cheque) carries an expiry date. If optional dated documents are added (e.g. Section 197 lower-TDS certificate), the rule is "expired as of today", no buffer. | Avoids inventing a validity policy; a buffer would be a client-config decision. |
+| A7 | **Rejection only on exact PAN match against the debarred list** (PAN extracted from GSTIN counts). Name-only matches go to review. | Rejection is the hardest decision to reverse; names collide frequently. PAN is entity-level, so it catches every state GSTIN of the same entity. |
+| A8 | **Duplicates are never auto-rejected.** | Usually legitimate (re-registration, new entity, bank change) — but bank change on an existing vendor is a top fraud vector, so a human decides. |
+| A9 | **REJECT outcomes are not overridable in the MVP.** | Prevents one-click approval of a debarred entity; in production a compliance role would own overrides. |
+| A10 | **Vendor submission is a web form + document uploads.** Ops can also submit on a vendor's behalf. | Brief: "You decide what the submission looks like." |
+
+## Simulated components (stated openly)
+
+| Component | MVP | Production equivalent |
+|---|---|---|
+| Tax registry lookup | Mock adapter over `registry_fixtures.json` | GST portal / GSP API |
+| Bank account verification | Mock adapter over `bank_fixtures.json`, returns holder name | Penny drop via Razorpay / Cashfree / bank API |
+| Debarred / sanctions list | Seeded `debarred.csv`, keyed on PAN | OFAC SDN, World Bank debarment, internal blocklist; screening provider |
+| Vendor master | Seeded `vendor_master.csv` | ERP vendor master (NetSuite, SAP, Oracle) |
+| Email | In-app Outbox, status "sent (simulated)" | Transactional email provider + vendor portal |
+
+Adapters implement the same interface a real integration would; swapping a mock for a real provider is a change confined to `adapters/`.
+
+**Sandbox defaults for unknown identifiers.** Fixtures cover every demo case. For identifiers not in the fixtures (e.g. a vendor typed live during the interview), the mocks behave like a provider sandbox: the GST registry returns `active`, and penny drop returns `verified`, echoing the submitted account holder name. Both responses carry `fixture: false`, which is visible in the evidence and audit trail. Without this, every ad-hoc submission would go to review for reasons unrelated to its data.
+
+## Known limitations
+
+- **Name matching** sends legitimate-but-unattested variations (bank-truncated names, unregistered trade names, form typos) to review. Accepted under the false-approval vs false-hold cost asymmetry.
+- **No document tamper / forgery detection.** Extraction trusts the document's visible content; grounding only verifies the value exists in the text layer.
+- **Image-only documents** can't be grounded against a text layer; their values are marked `source: image`.
+- **LLM dependency:** extraction requires the Claude API. Mitigated by caching by file hash and fail-closed behavior (outage → review, never approval).
+- **No real auth or roles.** Single access passcode for the demo; reviewer identity is a display name.
+- **Single-process, SQLite.** Appropriate for demo scale (tens of vendors), not for concurrent multi-team use.
+- **Sample data is fictitious**, generated to be realistic in structure (correct GSTIN checksums, valid PAN structure, valid IFSC format, plausible documents).
+
+## Open questions I would ask a real client
+
+1. Who may override a review decision, and do approvals above some vendor-spend level need a second approver?
+2. Which sanctions/debarment lists are mandatory for your industry and geographies?
+3. Is a bank account in a registered trade name acceptable policy, or must it be the legal name?
+4. What is the expected SLA for vendor responses, and when should an unresponsive case auto-close?
+5. Which ERP is the vendor master, and should approval write back to it?

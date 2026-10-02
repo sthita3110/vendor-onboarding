@@ -1,0 +1,125 @@
+{
+  "id": "E3",
+  "title": "Wrong document and wrong-state GSTIN",
+  "description": "An invoice was uploaded instead of a cancelled cheque, and the GSTIN is the Karnataka registration for a Tamil Nadu address.",
+  "expected": {
+    "status": "PENDING",
+    "sub_state": "AWAITING_VENDOR",
+    "failing_rules": [
+      "DOC-01",
+      "TAX-04"
+    ]
+  },
+  "case": {
+    "submission": {
+      "legal_name": "Kaveri Packaging Private Limited",
+      "trade_name": null,
+      "entity_type": "company",
+      "address": {
+        "line1": "18 Industrial Estate Road, Guindy",
+        "city": "Chennai",
+        "state": "Tamil Nadu",
+        "pin_code": "600032"
+      },
+      "contact_name": "Meena Krishnan",
+      "contact_email": "vendor.ops@kaveripack.example",
+      "gstin": "29AADCK3390P1ZV",
+      "pan": "AADCK3390P",
+      "bank": {
+        "account_holder_name": "Kaveri Packaging Private Limited",
+        "account_number": "20031045678912",
+        "ifsc": "SBIN0001789",
+        "bank_name": "State Bank of India"
+      }
+    },
+    "documents": {
+      "gst_certificate": {
+        "slot": "gst_certificate",
+        "filename": "gst_certificate.pdf",
+        "classified_type": "gst_certificate",
+        "fields": {
+          "legal_name": {
+            "value": "KAVERI PACKAGING PRIVATE LIMITED",
+            "quote": "Legal Name: KAVERI PACKAGING PRIVATE LIMITED",
+            "page": 1,
+            "grounded": "text"
+          },
+          "trade_name": {
+            "value": "KAVERI PACKAGING",
+            "quote": "Trade Name, if any: KAVERI PACKAGING",
+            "page": 1,
+            "grounded": "text"
+          },
+          "gstin": {
+            "value": "29AADCK3390P1ZV",
+            "quote": "Registration Number: 29AADCK3390P1ZV",
+            "page": 1,
+            "grounded": "text"
+          },
+          "constitution_of_business": {
+            "value": "Private Limited Company",
+            "quote": "Constitution of Business: Private Limited Company",
+            "page": 1,
+            "grounded": "text"
+          },
+          "principal_address": {
+            "value": "Plot 7, Peenya Industrial Area, Bengaluru, Karnataka 560058",
+            "quote": "Address of Principal Place of Business: Plot 7, Peenya Industrial Area, Bengaluru, Karnataka 560058",
+            "page": 1,
+            "grounded": "text"
+          },
+          "state": {
+            "value": "Karnataka",
+            "quote": "State: Karnataka",
+            "page": 1,
+            "grounded": "text"
+          }
+        }
+      },
+      "pan_card": {
+        "slot": "pan_card",
+        "filename": "pan_card.pdf",
+        "classified_type": "pan_card",
+        "fields": {
+          "name": {
+            "value": "KAVERI PACKAGING PRIVATE LIMITED",
+            "quote": "Name: KAVERI PACKAGING PRIVATE LIMITED",
+            "page": 1,
+            "grounded": "text"
+          },
+          "pan": {
+            "value": "AADCK3390P",
+            "quote": "Permanent Account Number: AADCK3390P",
+            "page": 1,
+            "grounded": "text"
+          }
+        }
+      },
+      "bank_proof": {
+        "slot": "bank_proof",
+        "filename": "INV-2026-0418.pdf",
+        "classified_type": "invoice",
+        "fields": {
+          "invoice_number": {
+            "value": "INV-2026-0418",
+            "quote": "Invoice No: INV-2026-0418",
+            "page": 1,
+            "grounded": "text"
+          },
+          "invoice_date": {
+            "value": "2026-09-18",
+            "quote": "Date: 2026-09-18",
+            "page": 1,
+            "grounded": "text"
+          },
+          "total_amount": {
+            "value": "1,84,080.00",
+            "quote": "Total: 1,84,080.00",
+            "page": 1,
+            "grounded": "text"
+          }
+        }
+      }
+    }
+  }
+}

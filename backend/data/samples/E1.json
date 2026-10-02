@@ -1,0 +1,130 @@
+{
+  "id": "E1",
+  "title": "GSTIN belongs to a different PAN",
+  "description": "GSTIN has a valid format and check digit, but the PAN inside it doesn't match the PAN card.",
+  "expected": {
+    "status": "PENDING",
+    "sub_state": "INTERNAL_REVIEW",
+    "failing_rules": [
+      "TAX-03"
+    ]
+  },
+  "case": {
+    "submission": {
+      "legal_name": "Brightpath Logistics Private Limited",
+      "trade_name": null,
+      "entity_type": "company",
+      "address": {
+        "line1": "Unit 12, Marol Industrial Estate, Andheri East",
+        "city": "Mumbai",
+        "state": "Maharashtra",
+        "pin_code": "400059"
+      },
+      "contact_name": "Vikram Desai",
+      "contact_email": "finance@brightpath.example",
+      "gstin": "27AAFCB1156Q1ZC",
+      "pan": "AAECB7302M",
+      "bank": {
+        "account_holder_name": "Brightpath Logistics Private Limited",
+        "account_number": "912020034567890",
+        "ifsc": "UTIB0000246",
+        "bank_name": "Axis Bank"
+      }
+    },
+    "documents": {
+      "gst_certificate": {
+        "slot": "gst_certificate",
+        "filename": "gst_certificate.pdf",
+        "classified_type": "gst_certificate",
+        "fields": {
+          "legal_name": {
+            "value": "BRIGHTPATH LOGISTICS PRIVATE LIMITED",
+            "quote": "Legal Name: BRIGHTPATH LOGISTICS PRIVATE LIMITED",
+            "page": 1,
+            "grounded": "text"
+          },
+          "trade_name": {
+            "value": "BRIGHTPATH LOGISTICS",
+            "quote": "Trade Name, if any: BRIGHTPATH LOGISTICS",
+            "page": 1,
+            "grounded": "text"
+          },
+          "gstin": {
+            "value": "27AAFCB1156Q1ZC",
+            "quote": "Registration Number: 27AAFCB1156Q1ZC",
+            "page": 1,
+            "grounded": "text"
+          },
+          "constitution_of_business": {
+            "value": "Private Limited Company",
+            "quote": "Constitution of Business: Private Limited Company",
+            "page": 1,
+            "grounded": "text"
+          },
+          "principal_address": {
+            "value": "Unit 12, Marol Industrial Estate, Andheri East, Mumbai, Maharashtra 400059",
+            "quote": "Address of Principal Place of Business: Unit 12, Marol Industrial Estate, Andheri East, Mumbai, Maharashtra 400059",
+            "page": 1,
+            "grounded": "text"
+          },
+          "state": {
+            "value": "Maharashtra",
+            "quote": "State: Maharashtra",
+            "page": 1,
+            "grounded": "text"
+          }
+        }
+      },
+      "pan_card": {
+        "slot": "pan_card",
+        "filename": "pan_card.pdf",
+        "classified_type": "pan_card",
+        "fields": {
+          "name": {
+            "value": "BRIGHTPATH LOGISTICS PRIVATE LIMITED",
+            "quote": "Name: BRIGHTPATH LOGISTICS PRIVATE LIMITED",
+            "page": 1,
+            "grounded": "text"
+          },
+          "pan": {
+            "value": "AAECB7302M",
+            "quote": "Permanent Account Number: AAECB7302M",
+            "page": 1,
+            "grounded": "text"
+          }
+        }
+      },
+      "bank_proof": {
+        "slot": "bank_proof",
+        "filename": "cancelled_cheque.pdf",
+        "classified_type": "bank_proof",
+        "fields": {
+          "account_holder_name": {
+            "value": "BRIGHTPATH LOGISTICS PRIVATE LIMITED",
+            "quote": "For: BRIGHTPATH LOGISTICS PRIVATE LIMITED",
+            "page": 1,
+            "grounded": "text"
+          },
+          "account_number": {
+            "value": "912020034567890",
+            "quote": "A/c No: 912020034567890",
+            "page": 1,
+            "grounded": "text"
+          },
+          "ifsc": {
+            "value": "UTIB0000246",
+            "quote": "IFSC: UTIB0000246",
+            "page": 1,
+            "grounded": "text"
+          },
+          "bank_name": {
+            "value": "Axis Bank",
+            "quote": "Bank: Axis Bank",
+            "page": 1,
+            "grounded": "text"
+          }
+        }
+      }
+    }
+  }
+}

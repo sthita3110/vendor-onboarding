@@ -1,0 +1,78 @@
+{
+  "50100234567811|HDFC0000240": {
+    "status": "verified",
+    "holder_name": "SAHYADRI STEEL TRADERS PRIVATE LIMITED"
+  },
+  "912010045678321|UTIB0000112": {
+    "status": "verified",
+    "holder_name": "COROMANDEL FREIGHT SERVICES PRIVATE LIMITED"
+  },
+  "38291045672|SBIN0020345": {
+    "status": "verified",
+    "holder_name": "DECCAN OFFICE SUPPLIES PRIVATE LIMITED"
+  },
+  "002105012345|ICIC0000021": {
+    "status": "verified",
+    "holder_name": "INDUS PRINTWORKS PRIVATE LIMITED"
+  },
+  "10230045671234|KKBK0000561": {
+    "status": "verified",
+    "holder_name": "MALABAR SPICE EXPORTS PRIVATE LIMITED"
+  },
+  "50200011122233|HDFC0001876": {
+    "status": "verified",
+    "holder_name": "MERIDIAN OFFICE SOLUTIONS PRIVATE LIMITED"
+  },
+  "6011234509|SBIN0003310": {
+    "status": "verified",
+    "holder_name": "NARMADA AGRO INDUSTRIES PRIVATE LIMITED"
+  },
+  "914020056781234|UTIB0002233": {
+    "status": "verified",
+    "holder_name": "PINNACLE FACILITY MANAGEMENT PRIVATE LIMITED"
+  },
+  "1234567890123|PUNB0123400": {
+    "status": "verified",
+    "holder_name": "GANGA ELECTRICALS PRIVATE LIMITED"
+  },
+  "40011223344|BKID0004455": {
+    "status": "verified",
+    "holder_name": "VINDHYA CABLES PRIVATE LIMITED"
+  },
+  "50100987654321|HDFC0000533": {
+    "status": "verified",
+    "holder_name": "KONKAN LOGISTICS LLP"
+  },
+  "31234567890|SBIN0001122": {
+    "status": "verified",
+    "holder_name": "SURESH PATIL"
+  },
+  "50200074561238|HDFC0000075": {
+    "status": "verified",
+    "holder_name": "LUMEN ANALYTICS PVT LTD"
+  },
+  "912020034567890|UTIB0000246": {
+    "status": "verified",
+    "holder_name": "BRIGHTPATH LOGISTICS PRIVATE LIMITED"
+  },
+  "003101567823|ICIC0000031": {
+    "status": "verified",
+    "holder_name": "RAKESH K SHARMA"
+  },
+  "20031045678912|SBIN0001789": {
+    "status": "verified",
+    "holder_name": "KAVERI PACKAGING PVT LTD"
+  },
+  "50100345612789|HDFC0000180": {
+    "status": "verified",
+    "holder_name": "APEX INDUSTRIAL SUPPLIES PVT LTD"
+  },
+  "7712345609|KKBK0007788": {
+    "status": "verified",
+    "holder_name": "MERIDIAN OFFICE SOLUTIONS PVT LTD"
+  },
+  "99990000111122|HDFC0000999": {
+    "status": "closed",
+    "holder_name": null
+  }
+}

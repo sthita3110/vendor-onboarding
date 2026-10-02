@@ -1,0 +1,130 @@
+{
+  "id": "E4",
+  "title": "Debarred entity",
+  "description": "Clean, consistent packet, but the PAN is on the debarred list.",
+  "expected": {
+    "status": "REJECTED",
+    "sub_state": null,
+    "failing_rules": [
+      "RISK-01"
+    ]
+  },
+  "case": {
+    "submission": {
+      "legal_name": "Apex Industrial Supplies Private Limited",
+      "trade_name": null,
+      "entity_type": "company",
+      "address": {
+        "line1": "Gat No. 112, Chakan MIDC",
+        "city": "Pune",
+        "state": "Maharashtra",
+        "pin_code": "410501"
+      },
+      "contact_name": "Sanjay Kulkarni",
+      "contact_email": "sales@apexindustrial.example",
+      "gstin": "27AAGCA5517R1Z5",
+      "pan": "AAGCA5517R",
+      "bank": {
+        "account_holder_name": "Apex Industrial Supplies Private Limited",
+        "account_number": "50100345612789",
+        "ifsc": "HDFC0000180",
+        "bank_name": "HDFC Bank"
+      }
+    },
+    "documents": {
+      "gst_certificate": {
+        "slot": "gst_certificate",
+        "filename": "gst_certificate.pdf",
+        "classified_type": "gst_certificate",
+        "fields": {
+          "legal_name": {
+            "value": "APEX INDUSTRIAL SUPPLIES PRIVATE LIMITED",
+            "quote": "Legal Name: APEX INDUSTRIAL SUPPLIES PRIVATE LIMITED",
+            "page": 1,
+            "grounded": "text"
+          },
+          "trade_name": {
+            "value": "APEX INDUSTRIAL SUPPLIES",
+            "quote": "Trade Name, if any: APEX INDUSTRIAL SUPPLIES",
+            "page": 1,
+            "grounded": "text"
+          },
+          "gstin": {
+            "value": "27AAGCA5517R1Z5",
+            "quote": "Registration Number: 27AAGCA5517R1Z5",
+            "page": 1,
+            "grounded": "text"
+          },
+          "constitution_of_business": {
+            "value": "Private Limited Company",
+            "quote": "Constitution of Business: Private Limited Company",
+            "page": 1,
+            "grounded": "text"
+          },
+          "principal_address": {
+            "value": "Gat No. 112, Chakan MIDC, Pune, Maharashtra 410501",
+            "quote": "Address of Principal Place of Business: Gat No. 112, Chakan MIDC, Pune, Maharashtra 410501",
+            "page": 1,
+            "grounded": "text"
+          },
+          "state": {
+            "value": "Maharashtra",
+            "quote": "State: Maharashtra",
+            "page": 1,
+            "grounded": "text"
+          }
+        }
+      },
+      "pan_card": {
+        "slot": "pan_card",
+        "filename": "pan_card.pdf",
+        "classified_type": "pan_card",
+        "fields": {
+          "name": {
+            "value": "APEX INDUSTRIAL SUPPLIES PRIVATE LIMITED",
+            "quote": "Name: APEX INDUSTRIAL SUPPLIES PRIVATE LIMITED",
+            "page": 1,
+            "grounded": "text"
+          },
+          "pan": {
+            "value": "AAGCA5517R",
+            "quote": "Permanent Account Number: AAGCA5517R",
+            "page": 1,
+            "grounded": "text"
+          }
+        }
+      },
+      "bank_proof": {
+        "slot": "bank_proof",
+        "filename": "cancelled_cheque.pdf",
+        "classified_type": "bank_proof",
+        "fields": {
+          "account_holder_name": {
+            "value": "APEX INDUSTRIAL SUPPLIES PRIVATE LIMITED",
+            "quote": "For: APEX INDUSTRIAL SUPPLIES PRIVATE LIMITED",
+            "page": 1,
+            "grounded": "text"
+          },
+          "account_number": {
+            "value": "50100345612789",
+            "quote": "A/c No: 50100345612789",
+            "page": 1,
+            "grounded": "text"
+          },
+          "ifsc": {
+            "value": "HDFC0000180",
+            "quote": "IFSC: HDFC0000180",
+            "page": 1,
+            "grounded": "text"
+          },
+          "bank_name": {
+            "value": "HDFC Bank",
+            "quote": "Bank: HDFC Bank",
+            "page": 1,
+            "grounded": "text"
+          }
+        }
+      }
+    }
+  }
+}

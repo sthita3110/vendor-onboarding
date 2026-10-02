@@ -1,0 +1,128 @@
+{
+  "id": "E3R",
+  "title": "Wrong document and wrong-state GSTIN \u2014 resubmitted",
+  "description": "Vendor's corrected resubmission of E3: Tamil Nadu GSTIN and a cancelled cheque.",
+  "expected": {
+    "status": "APPROVED",
+    "sub_state": null,
+    "failing_rules": []
+  },
+  "case": {
+    "submission": {
+      "legal_name": "Kaveri Packaging Private Limited",
+      "trade_name": null,
+      "entity_type": "company",
+      "address": {
+        "line1": "18 Industrial Estate Road, Guindy",
+        "city": "Chennai",
+        "state": "Tamil Nadu",
+        "pin_code": "600032"
+      },
+      "contact_name": "Meena Krishnan",
+      "contact_email": "vendor.ops@kaveripack.example",
+      "gstin": "33AADCK3390P1Z6",
+      "pan": "AADCK3390P",
+      "bank": {
+        "account_holder_name": "Kaveri Packaging Private Limited",
+        "account_number": "20031045678912",
+        "ifsc": "SBIN0001789",
+        "bank_name": "State Bank of India"
+      }
+    },
+    "documents": {
+      "gst_certificate": {
+        "slot": "gst_certificate",
+        "filename": "gst_certificate.pdf",
+        "classified_type": "gst_certificate",
+        "fields": {
+          "legal_name": {
+            "value": "KAVERI PACKAGING PRIVATE LIMITED",
+            "quote": "Legal Name: KAVERI PACKAGING PRIVATE LIMITED",
+            "page": 1,
+            "grounded": "text"
+          },
+          "trade_name": {
+            "value": "KAVERI PACKAGING",
+            "quote": "Trade Name, if any: KAVERI PACKAGING",
+            "page": 1,
+            "grounded": "text"
+          },
+          "gstin": {
+            "value": "33AADCK3390P1Z6",
+            "quote": "Registration Number: 33AADCK3390P1Z6",
+            "page": 1,
+            "grounded": "text"
+          },
+          "constitution_of_business": {
+            "value": "Private Limited Company",
+            "quote": "Constitution of Business: Private Limited Company",
+            "page": 1,
+            "grounded": "text"
+          },
+          "principal_address": {
+            "value": "18 Industrial Estate Road, Guindy, Chennai, Tamil Nadu 600032",
+            "quote": "Address of Principal Place of Business: 18 Industrial Estate Road, Guindy, Chennai, Tamil Nadu 600032",
+            "page": 1,
+            "grounded": "text"
+          },
+          "state": {
+            "value": "Tamil Nadu",
+            "quote": "State: Tamil Nadu",
+            "page": 1,
+            "grounded": "text"
+          }
+        }
+      },
+      "pan_card": {
+        "slot": "pan_card",
+        "filename": "pan_card.pdf",
+        "classified_type": "pan_card",
+        "fields": {
+          "name": {
+            "value": "KAVERI PACKAGING PRIVATE LIMITED",
+            "quote": "Name: KAVERI PACKAGING PRIVATE LIMITED",
+            "page": 1,
+            "grounded": "text"
+          },
+          "pan": {
+            "value": "AADCK3390P",
+            "quote": "Permanent Account Number: AADCK3390P",
+            "page": 1,
+            "grounded": "text"
+          }
+        }
+      },
+      "bank_proof": {
+        "slot": "bank_proof",
+        "filename": "cancelled_cheque.pdf",
+        "classified_type": "bank_proof",
+        "fields": {
+          "account_holder_name": {
+            "value": "KAVERI PACKAGING PVT LTD",
+            "quote": "For: KAVERI PACKAGING PVT LTD",
+            "page": 1,
+            "grounded": "text"
+          },
+          "account_number": {
+            "value": "20031045678912",
+            "quote": "A/c No: 20031045678912",
+            "page": 1,
+            "grounded": "text"
+          },
+          "ifsc": {
+            "value": "SBIN0001789",
+            "quote": "IFSC: SBIN0001789",
+            "page": 1,
+            "grounded": "text"
+          },
+          "bank_name": {
+            "value": "State Bank of India",
+            "quote": "Bank: State Bank of India",
+            "page": 1,
+            "grounded": "text"
+          }
+        }
+      }
+    }
+  }
+}

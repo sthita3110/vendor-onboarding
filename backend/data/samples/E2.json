@@ -1,0 +1,130 @@
+{
+  "id": "E2",
+  "title": "Bank account holder is an individual",
+  "description": "Everything matches on paper, but the bank reports the account holder as a person, not the company.",
+  "expected": {
+    "status": "PENDING",
+    "sub_state": "INTERNAL_REVIEW",
+    "failing_rules": [
+      "BANK-03"
+    ]
+  },
+  "case": {
+    "submission": {
+      "legal_name": "Northwind Supplies Private Limited",
+      "trade_name": null,
+      "entity_type": "company",
+      "address": {
+        "line1": "B-44, Okhla Industrial Area Phase II",
+        "city": "New Delhi",
+        "state": "Delhi",
+        "pin_code": "110020"
+      },
+      "contact_name": "Rakesh Sharma",
+      "contact_email": "rakesh@northwindsupplies.example",
+      "gstin": "07AABCN6419H1ZH",
+      "pan": "AABCN6419H",
+      "bank": {
+        "account_holder_name": "Northwind Supplies Private Limited",
+        "account_number": "003101567823",
+        "ifsc": "ICIC0000031",
+        "bank_name": "ICICI Bank"
+      }
+    },
+    "documents": {
+      "gst_certificate": {
+        "slot": "gst_certificate",
+        "filename": "gst_certificate.pdf",
+        "classified_type": "gst_certificate",
+        "fields": {
+          "legal_name": {
+            "value": "NORTHWIND SUPPLIES PRIVATE LIMITED",
+            "quote": "Legal Name: NORTHWIND SUPPLIES PRIVATE LIMITED",
+            "page": 1,
+            "grounded": "text"
+          },
+          "trade_name": {
+            "value": "NORTHWIND SUPPLIES",
+            "quote": "Trade Name, if any: NORTHWIND SUPPLIES",
+            "page": 1,
+            "grounded": "text"
+          },
+          "gstin": {
+            "value": "07AABCN6419H1ZH",
+            "quote": "Registration Number: 07AABCN6419H1ZH",
+            "page": 1,
+            "grounded": "text"
+          },
+          "constitution_of_business": {
+            "value": "Private Limited Company",
+            "quote": "Constitution of Business: Private Limited Company",
+            "page": 1,
+            "grounded": "text"
+          },
+          "principal_address": {
+            "value": "B-44, Okhla Industrial Area Phase II, New Delhi, Delhi 110020",
+            "quote": "Address of Principal Place of Business: B-44, Okhla Industrial Area Phase II, New Delhi, Delhi 110020",
+            "page": 1,
+            "grounded": "text"
+          },
+          "state": {
+            "value": "Delhi",
+            "quote": "State: Delhi",
+            "page": 1,
+            "grounded": "text"
+          }
+        }
+      },
+      "pan_card": {
+        "slot": "pan_card",
+        "filename": "pan_card.pdf",
+        "classified_type": "pan_card",
+        "fields": {
+          "name": {
+            "value": "NORTHWIND SUPPLIES PRIVATE LIMITED",
+            "quote": "Name: NORTHWIND SUPPLIES PRIVATE LIMITED",
+            "page": 1,
+            "grounded": "text"
+          },
+          "pan": {
+            "value": "AABCN6419H",
+            "quote": "Permanent Account Number: AABCN6419H",
+            "page": 1,
+            "grounded": "text"
+          }
+        }
+      },
+      "bank_proof": {
+        "slot": "bank_proof",
+        "filename": "cancelled_cheque.pdf",
+        "classified_type": "bank_proof",
+        "fields": {
+          "account_holder_name": {
+            "value": "NORTHWIND SUPPLIES PRIVATE LIMITED",
+            "quote": "For: NORTHWIND SUPPLIES PRIVATE LIMITED",
+            "page": 1,
+            "grounded": "text"
+          },
+          "account_number": {
+            "value": "003101567823",
+            "quote": "A/c No: 003101567823",
+            "page": 1,
+            "grounded": "text"
+          },
+          "ifsc": {
+            "value": "ICIC0000031",
+            "quote": "IFSC: ICIC0000031",
+            "page": 1,
+            "grounded": "text"
+          },
+          "bank_name": {
+            "value": "ICICI Bank",
+            "quote": "Bank: ICICI Bank",
+            "page": 1,
+            "grounded": "text"
+          }
+        }
+      }
+    }
+  }
+}

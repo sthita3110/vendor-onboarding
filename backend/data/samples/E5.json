@@ -1,0 +1,130 @@
+{
+  "id": "E5",
+  "title": "Existing vendor with new bank details",
+  "description": "Already in the vendor master; the submission carries a different bank account.",
+  "expected": {
+    "status": "PENDING",
+    "sub_state": "INTERNAL_REVIEW",
+    "failing_rules": [
+      "DUP-01"
+    ]
+  },
+  "case": {
+    "submission": {
+      "legal_name": "Meridian Office Solutions Private Limited",
+      "trade_name": null,
+      "entity_type": "company",
+      "address": {
+        "line1": "Plot 9, HITEC City Phase 2",
+        "city": "Hyderabad",
+        "state": "Telangana",
+        "pin_code": "500081"
+      },
+      "contact_name": "Farah Siddiqui",
+      "contact_email": "ap@meridianoffice.example",
+      "gstin": "36AAKCM6612R1ZS",
+      "pan": "AAKCM6612R",
+      "bank": {
+        "account_holder_name": "Meridian Office Solutions Private Limited",
+        "account_number": "7712345609",
+        "ifsc": "KKBK0007788",
+        "bank_name": "Kotak Mahindra Bank"
+      }
+    },
+    "documents": {
+      "gst_certificate": {
+        "slot": "gst_certificate",
+        "filename": "gst_certificate.pdf",
+        "classified_type": "gst_certificate",
+        "fields": {
+          "legal_name": {
+            "value": "MERIDIAN OFFICE SOLUTIONS PRIVATE LIMITED",
+            "quote": "Legal Name: MERIDIAN OFFICE SOLUTIONS PRIVATE LIMITED",
+            "page": 1,
+            "grounded": "text"
+          },
+          "trade_name": {
+            "value": "MERIDIAN OFFICE SOLUTIONS",
+            "quote": "Trade Name, if any: MERIDIAN OFFICE SOLUTIONS",
+            "page": 1,
+            "grounded": "text"
+          },
+          "gstin": {
+            "value": "36AAKCM6612R1ZS",
+            "quote": "Registration Number: 36AAKCM6612R1ZS",
+            "page": 1,
+            "grounded": "text"
+          },
+          "constitution_of_business": {
+            "value": "Private Limited Company",
+            "quote": "Constitution of Business: Private Limited Company",
+            "page": 1,
+            "grounded": "text"
+          },
+          "principal_address": {
+            "value": "Plot 9, HITEC City Phase 2, Hyderabad, Telangana 500081",
+            "quote": "Address of Principal Place of Business: Plot 9, HITEC City Phase 2, Hyderabad, Telangana 500081",
+            "page": 1,
+            "grounded": "text"
+          },
+          "state": {
+            "value": "Telangana",
+            "quote": "State: Telangana",
+            "page": 1,
+            "grounded": "text"
+          }
+        }
+      },
+      "pan_card": {
+        "slot": "pan_card",
+        "filename": "pan_card.pdf",
+        "classified_type": "pan_card",
+        "fields": {
+          "name": {
+            "value": "MERIDIAN OFFICE SOLUTIONS PRIVATE LIMITED",
+            "quote": "Name: MERIDIAN OFFICE SOLUTIONS PRIVATE LIMITED",
+            "page": 1,
+            "grounded": "text"
+          },
+          "pan": {
+            "value": "AAKCM6612R",
+            "quote": "Permanent Account Number: AAKCM6612R",
+            "page": 1,
+            "grounded": "text"
+          }
+        }
+      },
+      "bank_proof": {
+        "slot": "bank_proof",
+        "filename": "cancelled_cheque.pdf",
+        "classified_type": "bank_proof",
+        "fields": {
+          "account_holder_name": {
+            "value": "MERIDIAN OFFICE SOLUTIONS PRIVATE LIMITED",
+            "quote": "For: MERIDIAN OFFICE SOLUTIONS PRIVATE LIMITED",
+            "page": 1,
+            "grounded": "text"
+          },
+          "account_number": {
+            "value": "7712345609",
+            "quote": "A/c No: 7712345609",
+            "page": 1,
+            "grounded": "text"
+          },
+          "ifsc": {
+            "value": "KKBK0007788",
+            "quote": "IFSC: KKBK0007788",
+            "page": 1,
+            "grounded": "text"
+          },
+          "bank_name": {
+            "value": "Kotak Mahindra Bank",
+            "quote": "Bank: Kotak Mahindra Bank",
+            "page": 1,
+            "grounded": "text"
+          }
+        }
+      }
+    }
+  }
+}

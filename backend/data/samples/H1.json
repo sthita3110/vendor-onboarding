@@ -1,0 +1,128 @@
+{
+  "id": "H1",
+  "title": "Clean vendor",
+  "description": "Complete, consistent packet. Bank returns an abbreviated company name.",
+  "expected": {
+    "status": "APPROVED",
+    "sub_state": null,
+    "failing_rules": []
+  },
+  "case": {
+    "submission": {
+      "legal_name": "Lumen Analytics Private Limited",
+      "trade_name": null,
+      "entity_type": "company",
+      "address": {
+        "line1": "4th Floor, 21 Residency Road",
+        "city": "Bengaluru",
+        "state": "Karnataka",
+        "pin_code": "560025"
+      },
+      "contact_name": "Ananya Rao",
+      "contact_email": "accounts@lumenanalytics.example",
+      "gstin": "29AAACL4821K1ZD",
+      "pan": "AAACL4821K",
+      "bank": {
+        "account_holder_name": "Lumen Analytics Private Limited",
+        "account_number": "50200074561238",
+        "ifsc": "HDFC0000075",
+        "bank_name": "HDFC Bank"
+      }
+    },
+    "documents": {
+      "gst_certificate": {
+        "slot": "gst_certificate",
+        "filename": "gst_certificate.pdf",
+        "classified_type": "gst_certificate",
+        "fields": {
+          "legal_name": {
+            "value": "LUMEN ANALYTICS PRIVATE LIMITED",
+            "quote": "Legal Name: LUMEN ANALYTICS PRIVATE LIMITED",
+            "page": 1,
+            "grounded": "text"
+          },
+          "trade_name": {
+            "value": "LUMEN ANALYTICS",
+            "quote": "Trade Name, if any: LUMEN ANALYTICS",
+            "page": 1,
+            "grounded": "text"
+          },
+          "gstin": {
+            "value": "29AAACL4821K1ZD",
+            "quote": "Registration Number: 29AAACL4821K1ZD",
+            "page": 1,
+            "grounded": "text"
+          },
+          "constitution_of_business": {
+            "value": "Private Limited Company",
+            "quote": "Constitution of Business: Private Limited Company",
+            "page": 1,
+            "grounded": "text"
+          },
+          "principal_address": {
+            "value": "4th Floor, 21 Residency Road, Bengaluru, Karnataka 560025",
+            "quote": "Address of Principal Place of Business: 4th Floor, 21 Residency Road, Bengaluru, Karnataka 560025",
+            "page": 1,
+            "grounded": "text"
+          },
+          "state": {
+            "value": "Karnataka",
+            "quote": "State: Karnataka",
+            "page": 1,
+            "grounded": "text"
+          }
+        }
+      },
+      "pan_card": {
+        "slot": "pan_card",
+        "filename": "pan_card.pdf",
+        "classified_type": "pan_card",
+        "fields": {
+          "name": {
+            "value": "LUMEN ANALYTICS PRIVATE LIMITED",
+            "quote": "Name: LUMEN ANALYTICS PRIVATE LIMITED",
+            "page": 1,
+            "grounded": "text"
+          },
+          "pan": {
+            "value": "AAACL4821K",
+            "quote": "Permanent Account Number: AAACL4821K",
+            "page": 1,
+            "grounded": "text"
+          }
+        }
+      },
+      "bank_proof": {
+        "slot": "bank_proof",
+        "filename": "cancelled_cheque.pdf",
+        "classified_type": "bank_proof",
+        "fields": {
+          "account_holder_name": {
+            "value": "LUMEN ANALYTICS PVT. LTD.",
+            "quote": "For: LUMEN ANALYTICS PVT. LTD.",
+            "page": 1,
+            "grounded": "text"
+          },
+          "account_number": {
+            "value": "50200074561238",
+            "quote": "A/c No: 50200074561238",
+            "page": 1,
+            "grounded": "text"
+          },
+          "ifsc": {
+            "value": "HDFC0000075",
+            "quote": "IFSC: HDFC0000075",
+            "page": 1,
+            "grounded": "text"
+          },
+          "bank_name": {
+            "value": "HDFC Bank",
+            "quote": "Bank: HDFC Bank",
+            "page": 1,
+            "grounded": "text"
+          }
+        }
+      }
+    }
+  }
+}

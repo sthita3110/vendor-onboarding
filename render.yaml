@@ -1,0 +1,11 @@
+# Render Blueprint: one Docker web service built from the repo-root Dockerfile.
+services:
+  - type: web
+    name: vendor-onboarding
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false   # set in the Render dashboard; never committed
