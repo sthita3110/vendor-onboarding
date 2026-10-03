@@ -9,7 +9,7 @@ Design docs: [ARCHITECTURE.md](ARCHITECTURE.md) · [RULES.md](RULES.md) · [ASSU
 | Phase | State |
 |---|---|
 | 1 — Decision core (validators, name matching, cross-checks, mock adapters, risk, decision engine, golden tests) | ✅ |
-| 2 — Documents + AI extraction | 2a sample documents ✅ · 2b–2d — |
+| 2 — Documents + AI extraction | 2a sample documents ✅ · 2b OpenAI extraction ✅ · 2c–2d — |
 | 3 — Orchestration + persistence + API | — |
 | 4 — Frontend | — |
 | 5 — Communications + human review | — |
@@ -31,6 +31,14 @@ cd backend && .venv/bin/python -m scripts.generate_data && .venv/bin/python -m s
 ```
 
 Sample documents live in `backend/data/samples/<ID>/` (H1's PAN card is an image-only scan).
+
+AI extraction needs `backend/.env` with `OPENAI_API_KEY=...` (git-ignored). Optional: `OPENAI_MODEL` (default `gpt-4.1`).
+
+```bash
+cd backend
+.venv/bin/python -m scripts.try_extract data/samples/H1/pan_card_scan.pdf --slot pan_card
+.venv/bin/python -m scripts.benchmark_extraction --models gpt-4.1,gpt-4.1-mini   # accuracy vs ground truth
+```
 
 ## Phase 1 API
 
