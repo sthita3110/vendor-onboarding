@@ -7,6 +7,9 @@
     "sub_state": null,
     "failing_rules": []
   },
+  "scanned_slots": [
+    "pan_card"
+  ],
   "case": {
     "submission": {
       "legal_name": "Lumen Analytics Private Limited",
@@ -75,20 +78,20 @@
       },
       "pan_card": {
         "slot": "pan_card",
-        "filename": "pan_card.pdf",
+        "filename": "pan_card_scan.pdf",
         "classified_type": "pan_card",
         "fields": {
           "name": {
             "value": "LUMEN ANALYTICS PRIVATE LIMITED",
             "quote": "Name: LUMEN ANALYTICS PRIVATE LIMITED",
             "page": 1,
-            "grounded": "text"
+            "grounded": "image"
           },
           "pan": {
             "value": "AAACL4821K",
             "quote": "Permanent Account Number: AAACL4821K",
             "page": 1,
-            "grounded": "text"
+            "grounded": "image"
           }
         }
       },

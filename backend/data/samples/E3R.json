@@ -7,6 +7,7 @@
     "sub_state": null,
     "failing_rules": []
   },
+  "scanned_slots": [],
   "case": {
     "submission": {
       "legal_name": "Kaveri Packaging Private Limited",

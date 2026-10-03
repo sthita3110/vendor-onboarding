@@ -3,10 +3,10 @@
 Writes:
   data/reference/  gst_state_codes.json, vendor_master.csv, debarred.csv, gst_registry.json, penny_drop.json
   data/samples/    H1.json, E1.json, E2.json, E3.json, E3R.json, E4.json, E5.json
+                   (documents rendered as PDFs by scripts/render_documents.py)
 
 All entities are fictitious. Identifiers are structurally valid: PAN 4th char = holder type,
 5th char = first letter of the name; GSTIN check digits are computed, not typed.
-Phase 2 extends this script to render the documents as PDFs.
 
 Run from backend/:  python -m scripts.generate_data
 """
@@ -72,8 +72,8 @@ DEBARRED = [
 
 # ---------- demo cases ----------
 
-def field(value: str, label: str) -> dict:
-    return {"value": value, "quote": f"{label}: {value}", "page": 1, "grounded": "text"}
+def field(value: str, label: str, grounded: str = "text") -> dict:
+    return {"value": value, "quote": f"{label}: {value}", "page": 1, "grounded": grounded}
 
 
 def gst_doc(legal: str, trade: str, g: str, address: str, constitution: str = "Private Limited Company") -> dict:
@@ -90,10 +90,13 @@ def gst_doc(legal: str, trade: str, g: str, address: str, constitution: str = "P
     }
 
 
-def pan_doc(name: str, pan: str) -> dict:
+def pan_doc(name: str, pan: str, scanned: bool = False) -> dict:
+    """`scanned=True` -> rendered as an image-only PDF (no text layer); values can't be text-grounded."""
+    g = "image" if scanned else "text"
     return {
-        "slot": "pan_card", "filename": "pan_card.pdf", "classified_type": "pan_card",
-        "fields": {"name": field(name, "Name"), "pan": field(pan, "Permanent Account Number")},
+        "slot": "pan_card", "filename": "pan_card_scan.pdf" if scanned else "pan_card.pdf",
+        "classified_type": "pan_card",
+        "fields": {"name": field(name, "Name", g), "pan": field(pan, "Permanent Account Number", g)},
     }
 
 
@@ -143,7 +146,9 @@ def build_cases() -> tuple[list[dict], dict, dict]:
         bank[f"{account}|{ifsc}"] = {"status": status, "holder_name": holder}
 
     def add(cid, title, description, expected, sub, docs):
+        scanned = [d["slot"] for d in docs if all(f["grounded"] == "image" for f in d["fields"].values())]
         cases.append({"id": cid, "title": title, "description": description, "expected": expected,
+                      "scanned_slots": scanned,
                       "case": {"submission": sub, "documents": {d["slot"]: d for d in docs}}})
 
     # H1 — clean vendor
@@ -154,7 +159,7 @@ def build_cases() -> tuple[list[dict], dict, dict]:
                  account="50200074561238", ifsc="HDFC0000075", bank="HDFC Bank")
     add("H1", "Clean vendor", "Complete, consistent packet. Bank returns an abbreviated company name.",
         {"status": "APPROVED", "sub_state": None, "failing_rules": []}, sub,
-        [gst_doc(legal.upper(), "LUMEN ANALYTICS", g, addr), pan_doc("LUMEN ANALYTICS PRIVATE LIMITED", pan),
+        [gst_doc(legal.upper(), "LUMEN ANALYTICS", g, addr), pan_doc("LUMEN ANALYTICS PRIVATE LIMITED", pan, scanned=True),
          cheque_doc("LUMEN ANALYTICS PVT. LTD.", "50200074561238", "HDFC0000075", "HDFC Bank")])
     reg(g, legal.upper(), "LUMEN ANALYTICS")
     drop("50200074561238", "HDFC0000075", "LUMEN ANALYTICS PVT LTD")

@@ -9,7 +9,7 @@ Design docs: [ARCHITECTURE.md](ARCHITECTURE.md) · [RULES.md](RULES.md) · [ASSU
 | Phase | State |
 |---|---|
 | 1 — Decision core (validators, name matching, cross-checks, mock adapters, risk, decision engine, golden tests) | ✅ |
-| 2 — Documents + AI extraction | — |
+| 2 — Documents + AI extraction | 2a sample documents ✅ · 2b–2d — |
 | 3 — Orchestration + persistence + API | — |
 | 4 — Frontend | — |
 | 5 — Communications + human review | — |
@@ -24,11 +24,13 @@ uv venv --python 3.12 .venv && uv pip install --python .venv/bin/python -r requi
 .venv/bin/uvicorn app.main:app --reload        # http://localhost:8000/docs
 ```
 
-Regenerate reference data and sample packets (deterministic):
+Regenerate reference data, sample packets, and sample PDFs (all deterministic):
 
 ```bash
-cd backend && .venv/bin/python -m scripts.generate_data
+cd backend && .venv/bin/python -m scripts.generate_data && .venv/bin/python -m scripts.render_documents
 ```
+
+Sample documents live in `backend/data/samples/<ID>/` (H1's PAN card is an image-only scan).
 
 ## Phase 1 API
 
