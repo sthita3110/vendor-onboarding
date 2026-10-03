@@ -11,8 +11,11 @@ from app.domain.models import CaseInput, Status, SubState, Submission
 from app.llm.client import OpenAIReader, ReadResult, _content_part
 from app.llm.extract import UploadedFile, read_document, read_documents, to_document
 from app.llm.schema import ALL_FIELDS, EXTRACTION_SCHEMA
+from app.reference.data import SAMPLES_DIR
 from app.rules.evaluate import evaluate
 from tests.conftest import SAMPLE_IDS, load_sample
+
+VALID_PDF = (SAMPLES_DIR / "H1" / "gst_certificate.pdf").read_bytes()
 
 
 def raw_from_truth(doc: dict) -> dict:
@@ -36,8 +39,10 @@ class FakeReader:
         return ReadResult(data=self.by_filename[filename], model=self.model, latency_ms=1)
 
 
-def upload(slot="bank_proof", filename="f.pdf") -> UploadedFile:
-    return UploadedFile(slot, filename, b"%PDF-fake", "application/pdf")
+def upload(slot="bank_proof", filename="f.pdf", cid: str | None = None) -> UploadedFile:
+    """A real PDF: the sample file when `cid` is given, otherwise any valid PDF."""
+    data = (SAMPLES_DIR / cid / filename).read_bytes() if cid else VALID_PDF
+    return UploadedFile(slot, filename, data, "application/pdf")
 
 
 # ---------- schema ----------
@@ -95,7 +100,7 @@ def test_extraction_failure_fails_closed_end_to_end(ctx):
     sample = load_sample("H1")
     docs = sample["case"]["documents"]
     reader = FakeReader({d["filename"]: raw_from_truth(d) for d in docs.values()})
-    uploads = [upload(slot, d["filename"]) for slot, d in docs.items()]
+    uploads = [upload(slot, d["filename"], "H1") for slot, d in docs.items()]
     extracted = {slot: ex.document for slot, ex in read_documents(reader, uploads).items()}
     extracted["gst_certificate"] = read_document(FakeReader(fail=ConnectionError("down")),
                                                  upload("gst_certificate", "gst_certificate.pdf")).document
@@ -118,11 +123,11 @@ def test_documents_are_read_in_parallel():
 
 @pytest.mark.parametrize("cid", SAMPLE_IDS)
 def test_perfect_extraction_reproduces_golden_outcome(cid, ctx):
-    """The extraction layer's output is a drop-in for Phase 1's hand-written documents."""
+    """Perfect model output + the real PDFs (so grounding runs) reproduces every golden outcome."""
     sample = load_sample(cid)
     docs = sample["case"]["documents"]
     reader = FakeReader({d["filename"]: raw_from_truth(d) for d in docs.values()})
-    extracted = read_documents(reader, [upload(slot, d["filename"]) for slot, d in docs.items()])
+    extracted = read_documents(reader, [upload(slot, d["filename"], cid) for slot, d in docs.items()])
     case = CaseInput(submission=Submission.model_validate(sample["case"]["submission"]),
                      documents={slot: ex.document for slot, ex in extracted.items()})
     d = evaluate(case, ctx).decision

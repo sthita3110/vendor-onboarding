@@ -65,6 +65,7 @@ class DocumentInput(BaseModel):
     readable: bool = True
     fields: dict[str, ExtractedField] = Field(default_factory=dict)
     extraction_error: str | None = None  # set when the LLM call failed (system error)
+    file_problem: str | None = None  # file can't be used (unsupported, damaged, password) -> FILE-01, vendor fix
 
     def value(self, name: str) -> str | None:
         f = self.fields.get(name)

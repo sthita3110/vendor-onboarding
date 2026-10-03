@@ -23,6 +23,7 @@ from app.rules.catalog import RULES
 from app.rules.names import NameTier, match_names
 from app.rules.validators import (
     ENTITY_PAN_CHAR,
+    Validation,
     PAN_HOLDER_TYPES,
     clean_account,
     clean_id,
@@ -70,6 +71,15 @@ KEY_FIELDS: dict[str, list[tuple[str, str]]] = {
         ("account_number", "account number"),
         ("ifsc", "IFSC code"),
     ],
+}
+
+
+# Extracted values that must pass a format rule; failure means the document was misread (DOC-03).
+EXTRACTED_FORMATS: dict[tuple[str, str], Callable[[str, dict[str, str]], Validation]] = {
+    ("gst_certificate", "gstin"): lambda v, states: validate_gstin(v, states),
+    ("pan_card", "pan"): lambda v, _: validate_pan(v),
+    ("bank_proof", "ifsc"): lambda v, _: validate_ifsc(v),
+    ("bank_proof", "account_number"): lambda v, _: validate_account_number(v),
 }
 
 
@@ -196,6 +206,26 @@ def stage_completeness(s: RunState) -> None:
 # ---------- stage 2: document processing ----------
 
 def stage_doc_processing(s: RunState) -> None:
+    # FILE-01: the file itself can be used (checked before any AI call)
+    for slot in REQUIRED_DOCS:
+        label = DOC_LABELS[slot]
+        if slot in s.doc_blockers:
+            s.blocked("FILE-01", s.doc_blockers[slot], subject=label)
+            continue
+        doc = s.doc(slot)
+        assert doc is not None
+        if doc.file_problem:
+            s.doc_blockers[slot] = "FILE-01"
+            s.failed(
+                "FILE-01", f"The file uploaded as {label} can't be opened", subject=label,
+                detail=doc.file_problem, evidence={"slot": slot, "filename": doc.filename},
+                vendor_text=(f"We couldn't open the file you uploaded as your {label}"
+                             f"{f' ({doc.filename})' if doc.filename else ''}: {doc.file_problem}."),
+            )
+        else:
+            s.passed("FILE-01", f"{cap(label)} file opened", subject=label)
+
+    # DOC-01: each document is the type its slot expects
     for slot in REQUIRED_DOCS:
         label = DOC_LABELS[slot]
         if slot in s.doc_blockers:
@@ -253,6 +283,40 @@ def stage_extraction(s: RunState) -> None:
             continue
         s.passed("DOC-02", f"Read the {label}", subject=label,
                  evidence={name: doc.value(name) for name, _ in KEY_FIELDS[slot]})
+
+    # DOC-03: what was read is trustworthy — printed on the page (grounding) and well-formed (format).
+    # A misread is our problem, not the vendor's, so it goes to internal review, and the document is
+    # blocked from cross-checks so a misread never masquerades as "doesn't match the form".
+    for slot in REQUIRED_DOCS:
+        label = DOC_LABELS[slot]
+        if slot in s.doc_blockers:
+            s.blocked("DOC-03", s.doc_blockers[slot], subject=label)
+            continue
+        doc = s.doc(slot)
+        assert doc is not None
+        problems: list[str] = []
+        grounding: dict[str, str | None] = {}
+        for name, field_label in KEY_FIELDS[slot]:
+            f = doc.fields[name]
+            grounding[name] = f.grounded
+            # "unverified" = a text layer exists but the value isn't in it. ("image" = scan, can't check;
+            # None = grounding not run, e.g. hand-built fixtures.)
+            if f.grounded == "unverified":
+                problems.append(f"{field_label} '{f.value}' was not found in the document's text")
+            check = EXTRACTED_FORMATS.get((slot, name))
+            if check:
+                v = check(f.value or "", s.ctx.ref.state_codes)
+                if not v.valid:
+                    problems.append(f"{field_label} was read as '{f.value}', which is not valid: {v.reason}")
+        ev = {"grounding": grounding, "problems": problems}
+        if problems:
+            s.doc_blockers[slot] = "DOC-03"
+            s.failed("DOC-03", f"The {label} couldn't be read reliably", subject=label, evidence=ev,
+                     detail="; ".join(problems) + ". Check the document manually; if it is unclear, "
+                            "request a clearer copy from the vendor.")
+        else:
+            how = "checked against the document text" if "text" in grounding.values() else "format-checked (scan)"
+            s.passed("DOC-03", f"{cap(label)} read reliably ({how})", subject=label, evidence=ev)
 
 
 # ---------- stage 4: field validation ----------

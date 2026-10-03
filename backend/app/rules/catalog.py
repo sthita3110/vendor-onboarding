@@ -27,8 +27,10 @@ class Rule:
 _RULES = [
     Rule("COMP-01", "completeness", "Documents", "All required details provided", V),
     Rule("COMP-02", "completeness", "Documents", "All required documents uploaded", V),
+    Rule("FILE-01", "doc_processing", "Documents", "Files can be opened", V),
     Rule("DOC-01", "doc_processing", "Documents", "Each document is the right type", V),
     Rule("DOC-02", "extraction", "Documents", "Documents are readable", V),
+    Rule("DOC-03", "extraction", "Documents", "Documents were read reliably", R),
     Rule("TAX-01", "validation", "Tax", "GSTIN and PAN are valid", V),
     Rule("BANK-01", "validation", "Bank", "Bank details are valid", V),
     Rule("TAX-02", "cross_check", "Tax", "Tax IDs match the documents", R),

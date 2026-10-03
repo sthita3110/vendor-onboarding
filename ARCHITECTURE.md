@@ -92,7 +92,7 @@ Vendor submission (form + documents)
 ### Stage notes
 - **0 Intake** — submissions are versioned; a resubmission creates a new `Submission` + `Run` on the same `Case`.
 - **2 Doc processing** — classification answers "is the file in the bank-proof slot actually a bank proof?" Mismatch → `DOC-01`.
-- **3 Extraction** — one call per document with a doc-type-specific schema. Results cached by `(file_sha256, prompt_version, model)`. Timeout + one retry; failure → check status `error`.
+- **3 Extraction** — file intake check first (FILE-01: type sniffed from content, damaged / password-protected / oversized → vendor fix, no AI call). Then one strict-schema call per document (classify + extract), cached by `(file_sha256, prompt_version, model, request settings)`. Then grounding: each value checked against the PDF text layer (`text` / `unverified` / `image`). DOC-03 sends ungrounded or malformed key values to review and blocks that document from cross-checks. Timeout + one retry; failure → check status `error`.
 - **6 External verify** — adapters return realistic payloads from fixture files with small realistic latency. Interface is what a real integration (GST portal / GSP API, penny-drop via Razorpay/Cashfree) would implement.
 - **8 Decision** — see §5.
 - **9 Communication** — no real email in MVP; messages land in an in-app **Outbox** with status `sent (simulated)`.

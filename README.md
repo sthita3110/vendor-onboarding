@@ -9,7 +9,7 @@ Design docs: [ARCHITECTURE.md](ARCHITECTURE.md) · [RULES.md](RULES.md) · [ASSU
 | Phase | State |
 |---|---|
 | 1 — Decision core (validators, name matching, cross-checks, mock adapters, risk, decision engine, golden tests) | ✅ |
-| 2 — Documents + AI extraction | 2a sample documents ✅ · 2b OpenAI extraction ✅ · 2c–2d — |
+| 2 — Documents + AI extraction | 2a documents ✅ · 2b OpenAI extraction ✅ · 2c file checks, grounding, cache ✅ · 2d — |
 | 3 — Orchestration + persistence + API | — |
 | 4 — Frontend | — |
 | 5 — Communications + human review | — |

@@ -93,8 +93,10 @@ GST state codes used in samples: `07` Delhi · `27` Maharashtra · `29` Karnatak
 |---|---|---|---|---|
 | **COMP-01** | completeness | Required form field missing | VENDOR_ACTION | Yes — which field |
 | **COMP-02** | completeness | Required document slot empty | VENDOR_ACTION | Yes — which document |
+| **FILE-01** | doc processing | File can't be used: empty, > 10 MB, not PDF/PNG/JPG (by content), damaged, password-protected, > 10 pages. Checked before any AI call | VENDOR_ACTION | Yes — the specific fix (e.g. "upload a copy without a password") |
 | **DOC-01** | doc processing | Classified type ≠ slot's expected type | VENDOR_ACTION | Yes — "file in X slot appears to be Y" |
 | **DOC-02** | extraction | Document unreadable, or a key field not found | VENDOR_ACTION | Yes — re-upload clearer copy |
+| **DOC-03** | extraction | Document couldn't be read reliably: a key value is not in the PDF's text layer (grounding), or an extracted GSTIN / PAN / IFSC / account number fails its format rule (catches misreads on scans too) | REVIEW | Neutral — our misread, not the vendor's problem |
 | **TAX-01** | validation | GSTIN or PAN on the form fails format/checksum | VENDOR_ACTION | Yes — likely typo |
 | **TAX-02** | cross-check | GSTIN on certificate ≠ form, or PAN on PAN card ≠ form (all valid) | REVIEW | Neutral |
 | **TAX-03** | cross-check | PAN embedded in GSTIN (chars 3–12) ≠ submitted PAN / PAN card | REVIEW | Neutral |
@@ -112,11 +114,24 @@ GST state codes used in samples: `07` Delhi · `27` Maharashtra · `29` Karnatak
 | **DUP-02** | risk | Bank account (number + IFSC) already in vendor master under a different vendor | REVIEW | Neutral |
 | **SYS-01** | any | A required check errored (LLM timeout, adapter failure) | REVIEW | Neutral |
 
+### Who owns a "couldn't read it" problem
+
+| Situation | Rule | Outcome | Reasoning |
+|---|---|---|---|
+| File itself unusable (type, damaged, password, size) | FILE-01 | Awaiting vendor | Vendor can fix it by uploading a different file |
+| File opens, content illegible (model: `readable: false`) | DOC-02 | Awaiting vendor | Vendor can fix it with a clearer copy |
+| File fine, but what we read is ungrounded or malformed | DOC-03 | Internal review | Our misread — the vendor's document may be perfect; a reviewer can still request a clearer copy |
+| Model / provider failure | SYS-01 | Internal review | Our failure — re-uploading the same file would fail the same way |
+
+Test: *can the vendor fix this by doing something different?* If yes → vendor; if no → us.
+
 ### Dependencies (→ `blocked` status, not `error`)
 
 | Check | Needs | Blocked by |
 |---|---|---|
-| Extraction for a slot | Document present + correct type | COMP-02, DOC-01 |
+| DOC-01 (classification) | File usable | COMP-02, FILE-01 |
+| Extraction for a slot | Document present + correct type | COMP-02, FILE-01, DOC-01 |
+| Any cross-check using a document | Document read reliably | DOC-03 (in addition to COMP-02, FILE-01, DOC-01, DOC-02) |
 | TAX-02 | Form ID valid + GST certificate / PAN card extracted | TAX-01, COMP-02, DOC-01, DOC-02 |
 | ID-01 | GST certificate extracted (anchor) + the compared name present | COMP-01, COMP-02, DOC-01, DOC-02 |
 | BANK-02 | Bank proof extracted | COMP-02, DOC-01, DOC-02 |
@@ -131,7 +146,7 @@ Doc-side IDs are not format-validated separately: a malformed GSTIN/PAN on a doc
 
 ### Required checks for approval
 
-COMP-01, COMP-02, DOC-01, DOC-02, TAX-01, TAX-02, TAX-03, TAX-04, TAX-05, TAX-06, ID-01, BANK-01, BANK-02, BANK-03, BANK-04, RISK-01, RISK-02, DUP-01, DUP-02.
+COMP-01, COMP-02, FILE-01, DOC-01, DOC-02, DOC-03, TAX-01, TAX-02, TAX-03, TAX-04, TAX-05, TAX-06, ID-01, BANK-01, BANK-02, BANK-03, BANK-04, RISK-01, RISK-02, DUP-01, DUP-02.
 
 Approved ⇔ every required check has status `pass`.
 

@@ -3,3 +3,4 @@ uvicorn[standard]==0.37.0
 pydantic==2.11.9
 openai==3.24.0
 python-dotenv==1.2.4
+pypdf==6.19.0
