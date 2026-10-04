@@ -84,6 +84,7 @@ class PipelineDeps:
     reader_factory: Callable[[], DocumentReader] = make_reader
     cache: ExtractionCache | None = field(default_factory=make_cache)
     ctx: EvaluationContext = field(default_factory=default_context)
+    background: bool = True  # tests set False to run synchronously
 
 
 _executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="pipeline")
@@ -136,7 +137,7 @@ def resubmit_case(case_id: int, form: SubmissionForm, uploads: list[UploadedFile
 
 
 def start_run(run_id: int, *, background: bool = True, deps: PipelineDeps | None = None) -> Future | None:
-    if background:
+    if background and (deps is None or deps.background):
         return _executor.submit(run_pipeline, run_id, deps)
     run_pipeline(run_id, deps)
     return None

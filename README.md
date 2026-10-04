@@ -10,7 +10,7 @@ Design docs: [ARCHITECTURE.md](ARCHITECTURE.md) · [RULES.md](RULES.md) · [ASSU
 |---|---|
 | 1 — Decision core (validators, name matching, cross-checks, mock adapters, risk, decision engine, golden tests) | ✅ |
 | 2 — Documents + AI extraction (sample PDFs, OpenAI extraction, file checks, grounding, cache, live golden tests) | ✅ |
-| 3 — Orchestration + persistence + API | 3a database + file store + audit ✅ · 3b pipeline runner ✅ · 3c–3d — |
+| 3 — Orchestration + persistence + API | 3a database ✅ · 3b runner ✅ · 3c API ✅ · 3d seeding — |
 | 4 — Frontend | — |
 | 5 — Communications + human review | — |
 | 6 — Hardening + demo | — |
@@ -42,17 +42,26 @@ cd backend
 .venv/bin/python -m scripts.run_golden_live --runs 3  # stability across repeated live runs
 ```
 
-## API (Phases 1–2)
+## API
+
+All routes except `/api/health` require the `X-App-Passcode` header when `APP_PASSCODE` is set.
+Interactive docs: `/docs`.
 
 | Method | Path | Purpose |
 |---|---|---|
-| GET | `/api/health` | Liveness + rule catalog version |
+| GET | `/api/health` | Liveness (open) |
+| GET | `/api/samples` · `/api/samples/{id}` · `/api/samples/{id}/files/{name}` | Demo presets: form values + sample PDFs |
+| POST | `/api/cases` | Multipart `submission` (JSON) + `gst_certificate`, `pan_card`, `bank_proof` → `{case_id, reference, run_id}`; pipeline runs in the background |
+| GET | `/api/runs/{id}` | Live run: 10 stages (status, outcome, summary, timings) + decision when done |
+| GET | `/api/cases?status=&rule=&q=` | Dashboard list |
+| GET | `/api/cases/{id}?version=` | Case detail: versions, form, documents, grouped checks with evidence, extractions |
+| GET | `/api/cases/{id}/documents/{doc_id}` | Original uploaded file |
+| POST | `/api/cases/{id}/resubmit` | New version (changed files only; others carry over) → new run |
+| GET | `/api/review-queue` | Internal-review cases, oldest first |
+| GET | `/api/cases/{id}/audit` | Audit timeline |
+| GET | `/api/metrics` | Counts by status, straight-through rate, median time to decision, top reasons |
 | GET | `/api/rules` | Rule catalog |
-| GET | `/api/samples` | Demo cases |
-| GET | `/api/samples/{id}` | Demo case payload |
-| POST | `/api/samples/{id}/evaluate` | Evaluate a demo case |
-| POST | `/api/evaluate` | Evaluate any `CaseInput` JSON |
-| POST | `/api/evaluate-upload` | Multipart: `submission` (JSON) + `gst_certificate`, `pan_card`, `bank_proof` files → real extraction → decision. Requires `X-App-Passcode` when `APP_PASSCODE` is set |
+| POST | `/api/evaluate` | Developer tool: rules only on a JSON case (no AI, nothing stored) |
 
 ## Deploy
 

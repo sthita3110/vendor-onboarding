@@ -30,3 +30,26 @@ def h1() -> dict:
 
 def as_case(payload: dict) -> CaseInput:
     return CaseInput.model_validate(payload)
+
+
+class TruthReader:
+    """Fake model that recognises any sample PDF by content hash and returns its ground truth."""
+
+    model = "truth-reader"
+
+    def __init__(self):
+        import hashlib
+
+        from app.llm.client import ReadResult
+        from tests.test_extract import raw_from_truth
+
+        self._ReadResult = ReadResult
+        self._by_hash = {}
+        for cid in SAMPLE_IDS:
+            for doc in load_sample(cid)["case"]["documents"].values():
+                data = (SAMPLES_DIR / cid / doc["filename"]).read_bytes()
+                self._by_hash[hashlib.sha256(data).hexdigest()] = raw_from_truth(doc)
+        self._hash = hashlib.sha256
+
+    def read(self, data: bytes, filename: str, mime: str):
+        return self._ReadResult(data=self._by_hash[self._hash(data).hexdigest()], model=self.model, latency_ms=1)
