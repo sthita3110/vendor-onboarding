@@ -45,6 +45,10 @@ def _content_part(data: bytes, filename: str, mime: str) -> dict[str, Any]:
     raise ValueError(f"Unsupported file type: {mime}")
 
 
+def make_reader(settings: Settings | None = None) -> "OpenAIReader":
+    return OpenAIReader(settings or get_settings())
+
+
 class OpenAIReader:
     def __init__(self, settings: Settings | None = None, client: OpenAI | None = None):
         s = settings or get_settings()

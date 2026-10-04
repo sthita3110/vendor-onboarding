@@ -13,6 +13,7 @@ import os
 from pathlib import Path
 from typing import Any
 
+from app.config import Settings, get_settings
 from app.llm.prompts import PROMPT_VERSION
 
 REQUEST_SETTINGS = "pdf-detail-high|temperature-0"  # bump if the request shape changes
@@ -22,6 +23,11 @@ def cache_key(data: bytes, model: str) -> str:
     content = hashlib.sha256(data).hexdigest()
     config = hashlib.sha256(f"{PROMPT_VERSION}|{model}|{REQUEST_SETTINGS}".encode()).hexdigest()[:12]
     return f"{content}-{config}"
+
+
+def make_cache(settings: Settings | None = None) -> "ExtractionCache | None":
+    s = settings or get_settings()
+    return ExtractionCache(s.extraction_cache_dir) if s.extraction_cache else None
 
 
 class ExtractionCache:

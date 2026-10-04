@@ -23,6 +23,7 @@ class Settings:
     openai_reasoning_effort: str | None  # only sent if set (reasoning models)
     extraction_cache: bool = True  # EXTRACTION_CACHE=off forces a live model call every time
     extraction_cache_dir: Path = _BACKEND / "data" / "cache" / "extractions"
+    app_passcode: str | None = None  # if set, endpoints that spend money require X-App-Passcode
 
 
 def get_settings() -> Settings:
@@ -33,4 +34,5 @@ def get_settings() -> Settings:
         openai_reasoning_effort=os.getenv("OPENAI_REASONING_EFFORT") or None,
         extraction_cache=os.getenv("EXTRACTION_CACHE", "on").lower() != "off",
         extraction_cache_dir=Path(os.getenv("EXTRACTION_CACHE_DIR", str(_BACKEND / "data" / "cache" / "extractions"))),
+        app_passcode=os.getenv("APP_PASSCODE") or None,
     )

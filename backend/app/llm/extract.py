@@ -16,7 +16,7 @@ from typing import Any
 
 from app.documents.grounding import apply_grounding
 from app.documents.inspect import inspect_file
-from app.domain.models import DocumentInput, ExtractedField
+from app.domain.models import CaseInput, DocumentInput, ExtractedField, Submission
 from app.llm.cache import ExtractionCache, cache_key
 from app.llm.client import DocumentReader
 from app.llm.prompts import PROMPT_VERSION
@@ -110,3 +110,11 @@ def read_documents(reader: DocumentReader, uploads: list[UploadedFile],
     with ThreadPoolExecutor(max_workers=len(uploads)) as pool:
         results = list(pool.map(lambda u: read_document(reader, u, cache), uploads))
     return {u.slot: r for u, r in zip(uploads, results)}
+
+
+def extract_case(submission: Submission, uploads: list[UploadedFile], reader: DocumentReader,
+                 cache: ExtractionCache | None = None) -> tuple[CaseInput, dict[str, Extraction]]:
+    """Single entry point: submission + uploaded files -> a CaseInput ready for the rules."""
+    extractions = read_documents(reader, uploads, cache)
+    case = CaseInput(submission=submission, documents={slot: ex.document for slot, ex in extractions.items()})
+    return case, extractions

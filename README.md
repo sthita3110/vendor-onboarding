@@ -9,7 +9,7 @@ Design docs: [ARCHITECTURE.md](ARCHITECTURE.md) · [RULES.md](RULES.md) · [ASSU
 | Phase | State |
 |---|---|
 | 1 — Decision core (validators, name matching, cross-checks, mock adapters, risk, decision engine, golden tests) | ✅ |
-| 2 — Documents + AI extraction | 2a documents ✅ · 2b OpenAI extraction ✅ · 2c file checks, grounding, cache ✅ · 2d — |
+| 2 — Documents + AI extraction (sample PDFs, OpenAI extraction, file checks, grounding, cache, live golden tests) | ✅ |
 | 3 — Orchestration + persistence + API | — |
 | 4 — Frontend | — |
 | 5 — Communications + human review | — |
@@ -38,9 +38,11 @@ AI extraction needs `backend/.env` with `OPENAI_API_KEY=...` (git-ignored). Opti
 cd backend
 .venv/bin/python -m scripts.try_extract data/samples/H1/pan_card_scan.pdf --slot pan_card
 .venv/bin/python -m scripts.benchmark_extraction --models gpt-4.1,gpt-4.1-mini   # accuracy vs ground truth
+.venv/bin/python -m pytest -m live                    # all 7 cases, real model: outcomes + key-field accuracy
+.venv/bin/python -m scripts.run_golden_live --runs 3  # stability across repeated live runs
 ```
 
-## Phase 1 API
+## API (Phases 1–2)
 
 | Method | Path | Purpose |
 |---|---|---|
@@ -50,6 +52,7 @@ cd backend
 | GET | `/api/samples/{id}` | Demo case payload |
 | POST | `/api/samples/{id}/evaluate` | Evaluate a demo case |
 | POST | `/api/evaluate` | Evaluate any `CaseInput` JSON |
+| POST | `/api/evaluate-upload` | Multipart: `submission` (JSON) + `gst_certificate`, `pan_card`, `bank_proof` files → real extraction → decision. Requires `X-App-Passcode` when `APP_PASSCODE` is set |
 
 ## Deploy
 
