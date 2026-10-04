@@ -29,6 +29,8 @@ The brief asks candidates to treat ambiguity as part of the exercise: make an as
 
 Adapters implement the same interface a real integration would; swapping a mock for a real provider is a change confined to `adapters/`.
 
+**Simulated latency.** Mock providers wait `MOCK_LATENCY_MS` (default 400 ms) per call, like a provider sandbox round-trip, so the verification stage is visible in the live run view. Every response carries `simulated: true` and the UI labels it "Simulated provider" — nothing is presented as a real external call. Tests run with 0 ms.
+
 **Sandbox defaults for unknown identifiers.** Fixtures cover every demo case. For identifiers not in the fixtures (e.g. a vendor typed live during the interview), the mocks behave like a provider sandbox: the GST registry returns `active`, and penny drop returns `verified`, echoing the submitted account holder name. Both responses carry `fixture: false`, which is visible in the evidence and audit trail. Without this, every ad-hoc submission would go to review for reasons unrelated to its data.
 
 ## Known limitations

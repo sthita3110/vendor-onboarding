@@ -23,6 +23,7 @@ class GstRegistryRecord(BaseModel):
     trade_name: str | None = None
     provider: str
     fixture: bool = True  # False when the mock answered from its sandbox default
+    simulated: bool = False  # True for mock providers — shown as "Simulated provider" in the UI
 
 
 class BankVerification(BaseModel):
@@ -32,6 +33,7 @@ class BankVerification(BaseModel):
     holder_name: str | None = None  # name as registered with the bank
     provider: str
     fixture: bool = True
+    simulated: bool = False
 
 
 class GstRegistry(Protocol):

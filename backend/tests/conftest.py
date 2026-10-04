@@ -1,7 +1,10 @@
 import copy
 import json
+import os
 
 import pytest
+
+os.environ.setdefault("MOCK_LATENCY_MS", "0")  # simulated provider delay is for the live UI, not tests
 
 from app.domain.models import CaseInput
 from app.reference.data import SAMPLES_DIR

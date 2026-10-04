@@ -356,7 +356,7 @@ def _anchor(s: RunState) -> tuple[str | None, str | None]:
 
 
 def stage_cross_check(s: RunState) -> None:
-    gst, pan_card, bank_doc = s.usable_doc("gst_certificate"), s.usable_doc("pan_card"), s.usable_doc("bank_proof")
+    pan_card, bank_doc = s.usable_doc("pan_card"), s.usable_doc("bank_proof")
     form_gstin, form_pan = clean_id(s.form("gstin")), clean_id(s.form("pan"))
 
     # TAX-02: IDs on documents match the form

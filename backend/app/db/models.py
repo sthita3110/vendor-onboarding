@@ -111,7 +111,10 @@ class StageEvent(Base):
     stage: Mapped[str] = mapped_column(String(30))
     label: Mapped[str] = mapped_column(String(100))
     status: Mapped[str] = mapped_column(String(20), default="pending")  # pending|running|done|failed
-    summary: Mapped[str | None] = mapped_column(Text)
+    # How the stage went, for the UI icon: pass | issues | blocked | error (set when status == done/failed)
+    outcome: Mapped[str | None] = mapped_column(String(10))
+    summary: Mapped[str | None] = mapped_column(Text)  # one business-language line
+    details: Mapped[dict[str, Any]] = mapped_column(default=dict)  # rule ids, counts, timings
     started_at: Mapped[datetime | None]
     finished_at: Mapped[datetime | None]
 

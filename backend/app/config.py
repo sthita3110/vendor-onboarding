@@ -26,6 +26,7 @@ class Settings:
     app_passcode: str | None = None  # if set, endpoints that spend money require X-App-Passcode
     database_url: str = f"sqlite:///{_BACKEND / 'data' / 'app.db'}"
     uploads_dir: Path = _BACKEND / "data" / "uploads"
+    mock_latency_ms: int = 400  # simulated provider round-trip; labelled "Simulated provider" in the UI
 
 
 def get_settings() -> Settings:
@@ -39,4 +40,5 @@ def get_settings() -> Settings:
         app_passcode=os.getenv("APP_PASSCODE") or None,
         database_url=os.getenv("DATABASE_URL", f"sqlite:///{_BACKEND / 'data' / 'app.db'}"),
         uploads_dir=Path(os.getenv("UPLOADS_DIR", str(_BACKEND / "data" / "uploads"))),
+        mock_latency_ms=int(os.getenv("MOCK_LATENCY_MS", "400")),
     )

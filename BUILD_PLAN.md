@@ -180,7 +180,7 @@ Goal: a submission becomes a stored case with a run that executes in the backgro
 
 **What.** `run_pipeline(run_id)` executes stages 0–10 in a background thread; each stage writes a `stage_event` (`pending → running → done | failed`, start/end time, one-line human summary).
 
-**How stages map to the UI** (the live stepper shows these 10 rows):
+**How stages map to the UI** (the live stepper shows these 10 rows; a separate "Recorded" row was dropped during implementation because audit events are written throughout, not as a final step):
 
 | # | UI label | What runs |
 |---|---|---|
@@ -194,7 +194,6 @@ Goal: a submission becomes a stored case with a run that executes in the backgro
 | 7 | Risk screening | RISK-01, RISK-02, DUP-01, DUP-02 |
 | 8 | Deciding | Decision engine |
 | 9 | Notifying | Vendor message → outbox; review queue |
-| 10 | Recorded | Audit closed |
 
 Note: classification and extraction happen in **one** OpenAI call (2b), so stage 2 does the AI work and stage 3 shows the deterministic checks on what was read.
 
