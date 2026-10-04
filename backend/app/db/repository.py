@@ -69,11 +69,11 @@ def load_uploads(sub: m.Submission) -> list[UploadedFile]:
     return [UploadedFile(d.slot, d.filename, read_file(d.path)) for d in sub.documents]
 
 
-def create_run(session: Session, case: m.Case, sub: m.Submission) -> m.Run:
-    run = m.Run(case=case, submission=sub)
+def create_run(session: Session, case: m.Case, sub: m.Submission, trigger: str = "submission") -> m.Run:
+    run = m.Run(case=case, submission=sub, trigger=trigger)
     session.add(run)
     session.flush()
-    audit(session, case.id, "run.created", run_id=run.id, submission_version=sub.version)
+    audit(session, case.id, "run.created", run_id=run.id, submission_version=sub.version, trigger=trigger)
     return run
 
 

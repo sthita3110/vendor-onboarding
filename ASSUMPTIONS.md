@@ -36,6 +36,7 @@ Adapters implement the same interface a real integration would; swapping a mock 
 ## Known limitations
 
 - **Static vendor master.** In production, approving a vendor would write it to the ERP vendor master, so a later submission of the same vendor would trigger DUP-01. Here the vendor master is a fixed reference file and approvals do not feed back into it, so demo cases stay repeatable (running H1 in rehearsal doesn't turn the live H1 run into a duplicate).
+- **Seeded demo history.** On an empty database the app pre-populates 6 demo cases (H1, E1–E5) labelled "Seeded sample". Their check results are produced by the deterministic rules over each sample's known document data (no model call, no pipeline run) and must match the sample's expected outcome or seeding stops. Their stored run is marked "not executed" and excluded from timing metrics. Replay executes the real pipeline on any case.
 - **Disposable database.** SQLite, tables created at startup, no migrations; on the free hosting tier the database is reset on restart and re-seeded with demo cases. Production: Postgres + Alembic migrations.
 
 - **Name matching** sends legitimate-but-unattested variations (bank-truncated names, unregistered trade names, form typos) to review. Accepted under the false-approval vs false-hold cost asymmetry.

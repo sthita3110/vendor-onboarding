@@ -17,7 +17,14 @@ from app.db.storage import uploads_root
 from app.documents.inspect import MAX_BYTES
 from app.domain.models import CaseInput, Evaluation, Submission
 from app.llm.extract import UploadedFile
-from app.pipeline.runner import PipelineDeps, default_deps, resubmit_case, submit_case
+from app.pipeline.runner import (
+    PipelineDeps,
+    RunInProgressError,
+    default_deps,
+    replay_case,
+    resubmit_case,
+    submit_case,
+)
 from app.reference.data import SAMPLES_DIR
 from app.rules.catalog import RULES
 from app.rules.evaluate import evaluate
@@ -133,6 +140,24 @@ def resubmit_endpoint(
     return {"case_id": case_id, "run_id": run_id, "version": version}
 
 
+@router.post("/cases/{case_id}/replay", status_code=201)
+def replay_endpoint(
+    case_id: int,
+    use_cache: bool = Query(False, description="Reuse cached extractions instead of calling the model fresh"),
+    requested_by: str = Query("operations"),
+    deps: PipelineDeps = Depends(get_pipeline_deps),
+) -> dict:
+    """Execute the full pipeline again on the case's latest submission: a new run, live stages, fresh AI calls.
+    Works for any case, including seeded samples (whose stored run was never executed)."""
+    try:
+        run_id = replay_case(case_id, requested_by=requested_by, use_cache=use_cache, deps=deps)
+    except LookupError:
+        raise HTTPException(404, f"Case {case_id} not found") from None
+    except RunInProgressError as e:
+        raise HTTPException(409, str(e)) from None
+    return {"case_id": case_id, "run_id": run_id}
+
+
 @router.get("/cases")
 def list_cases(
     status: str | None = Query(None, description="APPROVED | AWAITING_VENDOR | INTERNAL_REVIEW | REJECTED | IN_PROGRESS"),
@@ -209,8 +234,9 @@ def metrics() -> dict:
         by_status = Counter(ser.display_status(c.status, c.sub_state) for c in cases)
         decided = [c for c in cases if c.status in ("APPROVED", "PENDING", "REJECTED")]
         straight_through = [c for c in decided if c.status == "APPROVED" and len(c.runs) == 1 and c.id not in reviewed]
+        # Timing only from executed runs: seeded runs were never executed, so they have no real duration.
         times = [(r.finished_at - r.created_at).total_seconds() for r in first_runs
-                 if r.status == "completed" and r.finished_at]
+                 if r.status == "completed" and r.finished_at and r.trigger != "seed"]
         reasons = Counter(rid for c in cases if c.status != "APPROVED" for rid in c.failing_rules)
     return {
         "total": len(cases),
@@ -220,6 +246,7 @@ def metrics() -> dict:
         "straight_through_rate": round(len(straight_through) / len(decided), 3) if decided else None,
         "median_seconds_to_decision": round(statistics.median(times), 1) if times else None,
         "top_reasons": [{"rule_id": rid, "issue": RULES[rid].issue, "count": n} for rid, n in reasons.most_common(5)],
+        "seeded_cases": sum(c.source == "seed" for c in cases),
     }
 
 

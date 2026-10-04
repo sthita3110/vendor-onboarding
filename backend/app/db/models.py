@@ -86,6 +86,8 @@ class Run(Base):
     case_id: Mapped[int] = mapped_column(ForeignKey("cases.id"), index=True)
     submission_id: Mapped[int] = mapped_column(ForeignKey("submissions.id"))
     status: Mapped[str] = mapped_column(String(20), default="queued")  # queued|running|completed|failed|interrupted
+    # What started it: submission | resubmission | replay (pipeline executed) | seed (pre-populated, not executed)
+    trigger: Mapped[str] = mapped_column(String(20), default="submission")
     error: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(default=utcnow)
     started_at: Mapped[datetime | None]

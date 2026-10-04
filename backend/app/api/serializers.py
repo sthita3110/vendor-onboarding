@@ -25,6 +25,16 @@ def reasons(rule_ids: list[str]) -> list[dict[str, str]]:
     return [{"rule_id": r, "issue": RULES[r].issue if r in RULES else r} for r in rule_ids]
 
 
+TRIGGER_LABEL = {"submission": "Submitted", "resubmission": "Resubmitted", "replay": "Replay",
+                 "seed": "Seeded sample (not executed)"}
+
+
+def source_label(c: m.Case) -> str:
+    if c.source == "seed":
+        return "Seeded sample"
+    return f"Uploaded · from sample {c.sample_id}" if c.sample_id else "Uploaded"
+
+
 def display_status(status: str, sub_state: str | None) -> str:
     """One label for badges: APPROVED | AWAITING_VENDOR | INTERNAL_REVIEW | REJECTED | IN_PROGRESS."""
     if status == "PENDING" and sub_state:
@@ -51,6 +61,8 @@ def run_json(run: m.Run) -> dict[str, Any]:
     return {
         "id": run.id, "case_id": run.case_id, "reference": run.case.reference,
         "vendor_name": run.case.vendor_name, "version": run.submission.version,
+        "trigger": run.trigger, "trigger_label": TRIGGER_LABEL.get(run.trigger, run.trigger),
+        "executed": run.trigger != "seed",
         "status": run.status, "active": run.status in ("queued", "running"), "error": run.error,
         "created_at": iso(run.created_at), "started_at": iso(run.started_at), "finished_at": iso(run.finished_at),
         "duration_ms": duration_ms(run.started_at, run.finished_at),
@@ -101,7 +113,7 @@ def case_row_json(c: m.Case) -> dict[str, Any]:
         "status": c.status, "sub_state": c.sub_state, "display_status": display_status(c.status, c.sub_state),
         "reasons": reasons(c.failing_rules), "versions": len(c.submissions),
         "vendor_actions": len(latest.decision.vendor_actions) if latest and latest.decision else 0,
-        "source": c.source, "sample_id": c.sample_id,
+        "source": c.source, "source_label": source_label(c), "sample_id": c.sample_id,
         "created_at": iso(c.created_at), "decided_at": iso(c.decided_at), "updated_at": iso(c.updated_at),
         "latest_run": {"id": latest.id, "status": latest.status} if latest else None,
     }
@@ -119,6 +131,10 @@ def case_detail_json(c: m.Case, version: int | None = None) -> dict[str, Any]:
         **case_row_json(c),
         "pan": c.pan,
         "can_resubmit": c.status == "PENDING" and not (latest_run and latest_run.status in ("queued", "running")),
+        "can_replay": not (latest_run and latest_run.status in ("queued", "running")),
+        "runs_detail": [{"id": r.id, "version": r.submission.version, "trigger": r.trigger,
+                         "trigger_label": TRIGGER_LABEL.get(r.trigger, r.trigger), "status": r.status,
+                         "created_at": iso(r.created_at), "decision": decision_json(r.decision)} for r in c.runs],
         "selected_version": selected.version,
         "versions_detail": [
             {"version": s.version, "submitted_at": iso(s.created_at), "submitted_by": s.submitted_by,

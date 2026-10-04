@@ -12,6 +12,7 @@ from app.api.routes import router
 from app.config import get_settings
 from app.db.engine import init_db
 from app.pipeline.runner import recover_interrupted_runs
+from app.pipeline.seed import seed_demo_cases
 from app.rules.catalog import CATALOG_VERSION
 
 
@@ -19,6 +20,8 @@ from app.rules.catalog import CATALOG_VERSION
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     init_db()
     recover_interrupted_runs()  # any run "in progress" at boot was cut off by a restart: fail closed
+    if get_settings().seed_demo:
+        seed_demo_cases()  # only if the database is empty; never executes the pipeline
     yield
 
 

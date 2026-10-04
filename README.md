@@ -10,7 +10,7 @@ Design docs: [ARCHITECTURE.md](ARCHITECTURE.md) · [RULES.md](RULES.md) · [ASSU
 |---|---|
 | 1 — Decision core (validators, name matching, cross-checks, mock adapters, risk, decision engine, golden tests) | ✅ |
 | 2 — Documents + AI extraction (sample PDFs, OpenAI extraction, file checks, grounding, cache, live golden tests) | ✅ |
-| 3 — Orchestration + persistence + API | 3a database ✅ · 3b runner ✅ · 3c API ✅ · 3d seeding — |
+| 3 — Orchestration + persistence + API (database, background runner, API, demo seeding + replay) | ✅ |
 | 4 — Frontend | — |
 | 5 — Communications + human review | — |
 | 6 — Hardening + demo | — |
@@ -57,11 +57,22 @@ Interactive docs: `/docs`.
 | GET | `/api/cases/{id}?version=` | Case detail: versions, form, documents, grouped checks with evidence, extractions |
 | GET | `/api/cases/{id}/documents/{doc_id}` | Original uploaded file |
 | POST | `/api/cases/{id}/resubmit` | New version (changed files only; others carry over) → new run |
+| POST | `/api/cases/{id}/replay?use_cache=false` | Execute the full pipeline again on the latest submission (fresh model calls by default) → new run |
 | GET | `/api/review-queue` | Internal-review cases, oldest first |
 | GET | `/api/cases/{id}/audit` | Audit timeline |
 | GET | `/api/metrics` | Counts by status, straight-through rate, median time to decision, top reasons |
 | GET | `/api/rules` | Rule catalog |
 | POST | `/api/evaluate` | Developer tool: rules only on a JSON case (no AI, nothing stored) |
+
+## Three ways a case gets results
+
+| Path | When | Pipeline executed? | OpenAI called? | Label |
+|---|---|---|---|---|
+| Seeded sample | Startup, only if the database is empty (`SEED_DEMO=on`) | No — rules applied to the sample's known data; must match its expected outcome | No | "Seeded sample", run type `seed` |
+| Replay | `POST /api/cases/{id}/replay` | Yes, all 10 stages | Yes (fresh by default) | run type `replay` |
+| New upload | `POST /api/cases` | Yes | Yes | "Uploaded", run type `submission` |
+
+Seeded: H1, E1, E2, E3, E4, E5. E3R is not seeded — it is E3's corrected resubmission, demonstrated live via `/resubmit`.
 
 ## Deploy
 

@@ -2,6 +2,7 @@
 
 Flow:
   submit_case()/resubmit_case()  -> stores the submission, creates a run + 10 pending stage rows, starts it
+  replay_case()                  -> new run on the case's latest submission (same files), executed normally
   run_pipeline(run_id)           -> for each stage: mark running -> do the work -> mark done (outcome, summary)
   recover_interrupted_runs()     -> at startup: unfinished runs -> interrupted -> case to internal review
 
@@ -16,7 +17,7 @@ import logging
 import time
 from collections.abc import Callable
 from concurrent.futures import Future, ThreadPoolExecutor
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 from sqlalchemy import select
 
@@ -31,7 +32,7 @@ from app.db.repository import (
     save_evaluation,
     set_case_status,
 )
-from app.domain.models import CaseInput, CheckResult, DocumentInput, Evaluation
+from app.domain.models import CaseInput, CheckResult, Decision, DocumentInput, Evaluation
 from app.domain.models import Submission as SubmissionForm
 from app.llm.cache import ExtractionCache, make_cache
 from app.llm.client import DocumentReader, make_reader
@@ -111,7 +112,7 @@ def submit_case(form: SubmissionForm, uploads: list[UploadedFile], *, submitted_
     """Store a new case and start its first run. Returns (case_id, run_id) immediately when background."""
     with session_scope() as s:
         case = create_case(s, form, uploads, submitted_by=submitted_by, source=source, sample_id=sample_id)
-        run = create_run(s, case, case.submissions[0])
+        run = create_run(s, case, case.submissions[0], trigger="submission")
         _create_stage_rows(s, run)
         case_id, run_id = case.id, run.id
     start_run(run_id, background=background, deps=deps)
@@ -127,11 +128,40 @@ def resubmit_case(case_id: int, form: SubmissionForm, uploads: list[UploadedFile
         if case is None:
             raise LookupError(f"Case {case_id} not found")
         sub = add_submission(s, case, form, uploads, submitted_by=submitted_by)
-        run = create_run(s, case, sub)
+        run = create_run(s, case, sub, trigger="resubmission")
         _create_stage_rows(s, run)
         set_case_status(s, case, "RECEIVED", None, [], actor=submitted_by, run_id=run.id,
                         reason=f"Resubmitted as version {sub.version}")
         run_id = run.id
+    start_run(run_id, background=background, deps=deps)
+    return run_id
+
+
+class RunInProgressError(RuntimeError):
+    pass
+
+
+def replay_case(case_id: int, *, requested_by: str = "operations", use_cache: bool = False,
+                background: bool = True, deps: PipelineDeps | None = None) -> int:
+    """Execute the full pipeline again on the case's latest submission (same files, new run).
+    Fresh model calls by default (use_cache=False): a replay demonstrates real execution, not a cache hit."""
+    with session_scope() as s:
+        case = s.get(m.Case, case_id)
+        if case is None:
+            raise LookupError(f"Case {case_id} not found")
+        if any(r.status in ("queued", "running") for r in case.runs):
+            raise RunInProgressError(f"{case.reference} already has a run in progress")
+        sub = case.submissions[-1]
+        run = create_run(s, case, sub, trigger="replay")
+        _create_stage_rows(s, run)
+        audit(s, case.id, "run.replayed", actor=requested_by, run_id=run.id, submission_version=sub.version,
+              use_cache=use_cache, previous_status=case.status)
+        set_case_status(s, case, "RECEIVED", None, [], actor=requested_by, run_id=run.id,
+                        reason=f"Replay of version {sub.version} requested")
+        run_id = run.id
+    deps = deps or default_deps()
+    if not use_cache:
+        deps = replace(deps, cache=None)
     start_run(run_id, background=background, deps=deps)
     return run_id
 
@@ -152,7 +182,7 @@ def _mark(run_id: int, stage: str, **values) -> None:
             setattr(ev, k, v)
 
 
-def _summarize_rules(key: str, new: list[CheckResult]) -> tuple[str, str, dict]:
+def summarize_rules(key: str, new: list[CheckResult]) -> tuple[str, str, dict]:
     fails = [r for r in new if r.status == "fail"]
     errors = [r for r in new if r.status == "error"]
     blocked = [r for r in new if r.status == "blocked"]
@@ -214,6 +244,24 @@ def _summarize_reading(extractions: dict[str, Extraction], seconds: float) -> tu
     return "pass", summary, details
 
 
+def summarize_decision(decision: Decision) -> tuple[str, str, dict]:
+    outcome = {"APPROVED": "pass", "REJECTED": "issues"}.get(decision.status.value, "issues")
+    return outcome, decision.summary, {"status": decision.status.value,
+                                       "sub_state": decision.sub_state.value if decision.sub_state else None,
+                                       "failing_rules": decision.failing_rules}
+
+
+def notify_note(decision: Decision) -> str:
+    asks = len(decision.vendor_actions)
+    vendor_note = f"{asks} item(s) to request from the vendor" if asks else ""
+    if decision.sub_state and decision.sub_state.value == "INTERNAL_REVIEW":
+        # Mixed case: review owns the status, but vendor-fixable items are requested in parallel.
+        return "Added to the internal review queue" + (f" · {vendor_note}" if asks else "")
+    if decision.sub_state and decision.sub_state.value == "AWAITING_VENDOR":
+        return vendor_note
+    return "No follow-up needed"
+
+
 # ---------- the run ----------
 
 def run_pipeline(run_id: int, deps: PipelineDeps | None = None) -> None:
@@ -260,7 +308,7 @@ def run_pipeline(run_id: int, deps: PipelineDeps | None = None) -> None:
                 before = len(state.results)
                 for stage_fn in RULE_STAGES[key]:
                     stage_fn(state)
-                outcome, summary, details = _summarize_rules(key, state.results[before:])
+                outcome, summary, details = summarize_rules(key, state.results[before:])
             _mark(run_id, key, status="done", outcome=outcome, summary=summary, details=details,
                   finished_at=m.utcnow())
 
@@ -271,26 +319,14 @@ def run_pipeline(run_id: int, deps: PipelineDeps | None = None) -> None:
         with session_scope() as s:
             run = s.get(m.Run, run_id)
             save_evaluation(s, run, extractions, Evaluation(decision=decision, results=state.results))
-        outcome = {"APPROVED": "pass", "REJECTED": "issues"}.get(decision.status.value, "issues")
-        _mark(run_id, "decision", status="done", outcome=outcome, summary=decision.summary,
-              details={"status": decision.status.value,
-                       "sub_state": decision.sub_state.value if decision.sub_state else None,
-                       "failing_rules": decision.failing_rules},
+        outcome, summary, details = summarize_decision(decision)
+        _mark(run_id, "decision", status="done", outcome=outcome, summary=summary, details=details,
               finished_at=m.utcnow())
 
         # 9. notify — vendor message generation arrives in Phase 5
         current = "notify"
         _mark(run_id, "notify", status="running", started_at=m.utcnow())
-        asks = len(decision.vendor_actions)
-        vendor_note = f"{asks} item(s) to request from the vendor" if asks else ""
-        if decision.sub_state and decision.sub_state.value == "INTERNAL_REVIEW":
-            # Mixed case: review owns the status, but vendor-fixable items are requested in parallel.
-            note = "Added to the internal review queue" + (f" · {vendor_note}" if asks else "")
-        elif decision.sub_state and decision.sub_state.value == "AWAITING_VENDOR":
-            note = vendor_note
-        else:
-            note = "No follow-up needed"
-        _mark(run_id, "notify", status="done", outcome="pass", summary=note, finished_at=m.utcnow())
+        _mark(run_id, "notify", status="done", outcome="pass", summary=notify_note(decision), finished_at=m.utcnow())
 
         with session_scope() as s:
             run = s.get(m.Run, run_id)

@@ -27,6 +27,7 @@ class Settings:
     database_url: str = f"sqlite:///{_BACKEND / 'data' / 'app.db'}"
     uploads_dir: Path = _BACKEND / "data" / "uploads"
     mock_latency_ms: int = 400  # simulated provider round-trip; labelled "Simulated provider" in the UI
+    seed_demo: bool = True  # on startup, pre-populate demo cases if the database is empty
 
 
 def get_settings() -> Settings:
@@ -41,4 +42,5 @@ def get_settings() -> Settings:
         database_url=os.getenv("DATABASE_URL", f"sqlite:///{_BACKEND / 'data' / 'app.db'}"),
         uploads_dir=Path(os.getenv("UPLOADS_DIR", str(_BACKEND / "data" / "uploads"))),
         mock_latency_ms=int(os.getenv("MOCK_LATENCY_MS", "400")),
+        seed_demo=os.getenv("SEED_DEMO", "on").lower() != "off",
     )
