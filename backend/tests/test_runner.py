@@ -173,3 +173,17 @@ def test_simulated_latency_is_applied_and_labelled():
     start = time.monotonic()
     resp = bank.verify("50200074561238", "HDFC0000075", "X")
     assert time.monotonic() - start >= 0.15 and resp.simulated is True
+
+
+def test_mixed_case_reviews_and_still_asks_vendor(db, ctx):
+    """1 review finding + 1 vendor finding: review owns the status; the vendor item is still requested."""
+    sample = load_sample("E2")
+    form = sample_submission(sample).model_copy(update={"contact_email": None})
+    case_id, run_id = submit_case(form, sample_uploads(sample), background=False, deps=deps_for("E2", ctx))
+    with session_scope() as s:
+        case, run = s.get(m.Case, case_id), s.get(m.Run, run_id)
+        assert (case.status, case.sub_state) == ("PENDING", "INTERNAL_REVIEW")
+        assert case.failing_rules == ["BANK-03", "COMP-01"]
+        assert run.decision.vendor_actions == ["Please provide your contact email."]
+        notify = next(e for e in run.stage_events if e.stage == "notify")
+        assert notify.summary == "Added to the internal review queue · 1 item(s) to request from the vendor"

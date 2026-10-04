@@ -280,10 +280,13 @@ def run_pipeline(run_id: int, deps: PipelineDeps | None = None) -> None:
         # 9. notify — vendor message generation arrives in Phase 5
         current = "notify"
         _mark(run_id, "notify", status="running", started_at=m.utcnow())
+        asks = len(decision.vendor_actions)
+        vendor_note = f"{asks} item(s) to request from the vendor" if asks else ""
         if decision.sub_state and decision.sub_state.value == "INTERNAL_REVIEW":
-            note = "Added to the internal review queue"
+            # Mixed case: review owns the status, but vendor-fixable items are requested in parallel.
+            note = "Added to the internal review queue" + (f" · {vendor_note}" if asks else "")
         elif decision.sub_state and decision.sub_state.value == "AWAITING_VENDOR":
-            note = f"{len(decision.vendor_actions)} item(s) to request from the vendor"
+            note = vendor_note
         else:
             note = "No follow-up needed"
         _mark(run_id, "notify", status="done", outcome="pass", summary=note, finished_at=m.utcnow())
