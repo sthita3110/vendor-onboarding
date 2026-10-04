@@ -33,6 +33,9 @@ Adapters implement the same interface a real integration would; swapping a mock 
 
 ## Known limitations
 
+- **Static vendor master.** In production, approving a vendor would write it to the ERP vendor master, so a later submission of the same vendor would trigger DUP-01. Here the vendor master is a fixed reference file and approvals do not feed back into it, so demo cases stay repeatable (running H1 in rehearsal doesn't turn the live H1 run into a duplicate).
+- **Disposable database.** SQLite, tables created at startup, no migrations; on the free hosting tier the database is reset on restart and re-seeded with demo cases. Production: Postgres + Alembic migrations.
+
 - **Name matching** sends legitimate-but-unattested variations (bank-truncated names, unregistered trade names, form typos) to review. Accepted under the false-approval vs false-hold cost asymmetry.
 - **No document tamper / forgery detection.** Extraction trusts the document's visible content; grounding only verifies the value exists in the text layer.
 - **Image-only documents** can't be grounded against a text layer; their values are marked `source: image`.

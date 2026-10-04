@@ -5,3 +5,4 @@ openai==3.24.0
 python-dotenv==1.2.4
 pypdf==6.19.0
 python-multipart==0.0.32
+sqlalchemy==2.1.3

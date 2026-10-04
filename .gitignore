@@ -8,3 +8,5 @@ dist/
 *.db
 .DS_Store
 backend/data/cache/
+backend/data/app.db*
+backend/data/uploads/
