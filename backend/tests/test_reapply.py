@@ -52,10 +52,13 @@ def case_id_of(sample_id: str) -> int:
 
 
 def reject(case_id: int) -> None:
-    """Stand-in for a reviewer's rejection (Phase 5 adds the real action)."""
-    with session_scope() as s:
-        set_case_status(s, s.get(m.Case, case_id), "REJECTED", None, ["ID-01"], actor="reviewer",
-                        reason="test: rejected by reviewer")
+    """A reviewer's rejection. H1 is approved, so first replay it into review with a misread, then reject."""
+    with session_scope() as s:  # put the approved sample back into review, as a fresh finding would
+        set_case_status(s, s.get(m.Case, case_id), "PENDING", "INTERNAL_REVIEW", ["ID-01"], actor="system",
+                        reason="test: finding raised")
+    r = client.post(f"/api/cases/{case_id}/review",
+                    json={"action": "reject", "reviewer": "Priya (AP)", "reason": "identity not established"})
+    assert r.status_code == 200, r.text
 
 
 # ---------- PRIOR-01 as a rule ----------
@@ -115,7 +118,7 @@ def test_reapply_after_reviewer_rejection_goes_to_review_never_auto_approve(db):
     assert new["display_status"] == "INTERNAL_REVIEW"  # clean documents, but a person must sign off
     assert [x["rule_id"] for x in new["reasons"]] == ["PRIOR-01"]
     prior01 = next(rule for g in new["checks"] for rule in g["rules"] if rule["rule_id"] == "PRIOR-01")
-    assert "VO-0001 was rejected" in prior01["results"][0]["detail"]
+    assert "VO-0001 was rejected" in prior01["results"][0]["detail"] and "Name mismatch" in prior01["results"][0]["detail"]
 
 
 def test_one_open_case_rule_still_holds_after_reapplying(db):

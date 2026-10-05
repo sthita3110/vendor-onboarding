@@ -12,7 +12,7 @@ Design docs: [ARCHITECTURE.md](ARCHITECTURE.md) · [RULES.md](RULES.md) · [ASSU
 | 2 — Documents + AI extraction (sample PDFs, OpenAI extraction, file checks, grounding, cache, live golden tests) | ✅ |
 | 3 — Orchestration + persistence + API (database, background runner, API, demo seeding + replay) | ✅ |
 | 4 — Frontend (dashboard, new vendor form, live run view, case page with evidence and audit, review queue, resubmit) | ✅ |
-| 5 — Communications + human review | — |
+| 5 — Communications + human review | 5a reviewer actions ✅ · 5b vendor messages — |
 | 6 — Hardening + demo | — |
 
 ## Run locally
@@ -67,6 +67,7 @@ Interactive docs: `/docs`.
 | GET | `/api/cases/{id}?version=` | Case detail: versions, form, documents, grouped checks with evidence, extractions |
 | GET | `/api/cases/{id}/documents/{doc_id}` | Original uploaded file |
 | POST | `/api/cases/{id}/resubmit` | New version (changed files only; others carry over) → new run |
+| POST | `/api/cases/{id}/review` | JSON `{action: approve\|request_info\|reject, reviewer, reason, message?}` on an internal-review case (422 missing reason/message, 409 not allowed) |
 | POST | `/api/cases/{id}/reapply` | New application after rejection: multipart form + files → new linked case → run (409 if not allowed, 422 if a different entity) |
 | POST | `/api/cases/{id}/replay?use_cache=false` | Execute the full pipeline again on the latest submission (fresh model calls by default) → new run |
 | GET | `/api/review-queue` | Internal-review cases, oldest first |

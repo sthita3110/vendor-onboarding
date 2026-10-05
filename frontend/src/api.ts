@@ -287,11 +287,29 @@ export interface CaseLink {
   decided_at: string | null
 }
 
+export interface ReviewActionView {
+  id: number
+  action: 'approve' | 'request_info' | 'reject'
+  reason: string
+  message: string | null
+  actor: string
+  run_id: number | null
+  previous_status: string
+  new_status: string
+  overridden_rules: Reason[]
+  at: string
+}
+
 export interface CaseDetail extends CaseRow {
   pan: string | null
   can_resubmit: boolean
   can_replay: boolean
   can_reapply: boolean
+  can_review: boolean
+  can_approve: boolean
+  approve_blocked_reason: string | null
+  review_actions: ReviewActionView[]
+  human_decision: ReviewActionView | null
   previous_case: CaseLink | null
   superseded_by: CaseLink[]
   selected_version: number
@@ -382,4 +400,10 @@ export function reapplyCase(previousCaseId: number, form: SubmissionForm, files:
   body.set('submission', JSON.stringify(toPayload(form)))
   for (const [slot, file] of Object.entries(files)) if (file) body.set(slot, file)
   return api<Created & { previous_case_id: number }>(`/api/cases/${previousCaseId}/reapply`, { method: 'POST', body })
+}
+
+export function reviewCase(caseId: number, body: { action: ReviewActionView['action']; reviewer: string; reason: string; message?: string }) {
+  return api<{ review: ReviewActionView; case: CaseRow }>(`/api/cases/${caseId}/review`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+  })
 }

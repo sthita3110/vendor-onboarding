@@ -41,6 +41,7 @@ from app.domain.models import Submission as SubmissionForm
 from app.llm.cache import ExtractionCache, make_cache
 from app.llm.client import DocumentReader, make_reader
 from app.llm.extract import Extraction, UploadedFile, read_documents
+from app.pipeline.review import human_decided_since_last_run
 from app.rules import checks
 from app.rules.checks import EvaluationContext, RunState
 from app.rules.engine import decide
@@ -163,6 +164,10 @@ class RunInProgressError(RuntimeError):
     pass
 
 
+class ReplayBlockedError(RuntimeError):
+    """A reviewer has decided the case: a replay would override a human decision."""
+
+
 class ReapplyNotAllowedError(RuntimeError):
     """Reapply is only for a rejected case whose entity has no open case."""
 
@@ -213,6 +218,10 @@ def replay_case(case_id: int, *, requested_by: str = "operations", use_cache: bo
             raise LookupError(f"Case {case_id} not found")
         if any(r.status in ("queued", "running") for r in case.runs):
             raise RunInProgressError(f"{case.reference} already has a run in progress")
+        actions = list(s.query(m.ReviewAction).filter(m.ReviewAction.case_id == case_id))
+        if human_decided_since_last_run(case, actions):
+            raise ReplayBlockedError(f"A reviewer has decided {case.reference}; replaying would override that "
+                                     "decision. New information comes in by resubmitting or reapplying.")
         sub = case.submissions[-1]
         run = create_run(s, case, sub, trigger="replay")
         _create_stage_rows(s, run)

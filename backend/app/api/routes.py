@@ -7,7 +7,9 @@ from collections import Counter
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from fastapi.responses import FileResponse
-from pydantic import ValidationError
+from typing import Literal
+
+from pydantic import BaseModel, ValidationError
 from sqlalchemy import select
 
 from app.api import serializers as ser
@@ -22,6 +24,7 @@ from app.pipeline.runner import (
     DuplicateCaseError,
     PipelineDeps,
     ReapplyNotAllowedError,
+    ReplayBlockedError,
     RunInProgressError,
     default_deps,
     reapply_case,
@@ -29,6 +32,7 @@ from app.pipeline.runner import (
     resubmit_case,
     submit_case,
 )
+from app.pipeline.review import ReviewInvalid, ReviewNotAllowed, review_case
 from app.reference.data import SAMPLES_DIR, load_reference
 from app.rules.catalog import RULES
 from app.rules.evaluate import evaluate
@@ -203,9 +207,32 @@ def replay_endpoint(
         run_id = replay_case(case_id, requested_by=requested_by, use_cache=use_cache, deps=deps)
     except LookupError:
         raise HTTPException(404, f"Case {case_id} not found") from None
-    except RunInProgressError as e:
+    except (RunInProgressError, ReplayBlockedError) as e:
         raise HTTPException(409, str(e)) from None
     return {"case_id": case_id, "run_id": run_id}
+
+
+class ReviewRequest(BaseModel):
+    action: Literal["approve", "request_info", "reject"]
+    reviewer: str
+    reason: str
+    message: str | None = None  # vendor-facing text; required for request_info
+
+
+@router.post("/cases/{case_id}/review")
+def review_endpoint(case_id: int, body: ReviewRequest) -> dict:
+    """A reviewer's decision on an internal-review case. Reason is mandatory; Approve is refused when checks
+    didn't run or the vendor still owes items."""
+    try:
+        row = review_case(case_id, body.action, reviewer=body.reviewer, reason=body.reason, message=body.message)
+    except LookupError:
+        raise HTTPException(404, f"Case {case_id} not found") from None
+    except ReviewInvalid as e:
+        raise HTTPException(422, str(e)) from None
+    except ReviewNotAllowed as e:
+        raise HTTPException(409, str(e)) from None
+    with session_scope() as s:
+        return {"review": ser.review_json(s.get(m.ReviewAction, row.id)), "case": ser.case_row_json(s.get(m.Case, case_id))}
 
 
 @router.get("/cases")

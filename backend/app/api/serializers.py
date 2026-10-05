@@ -10,6 +10,7 @@ from sqlalchemy.orm import object_session
 
 from app.db import models as m
 from app.db.repository import can_reapply, superseded_by
+from app.pipeline.review import human_decided_since_last_run, review_options
 from app.rules.catalog import RULE_ORDER, RULES
 
 GROUP_ORDER = ["Documents", "Tax", "Identity", "Bank", "Risk", "System"]
@@ -30,6 +31,12 @@ def reasons(rule_ids: list[str]) -> list[dict[str, str]]:
 
 TRIGGER_LABEL = {"submission": "Submitted", "resubmission": "Resubmitted", "replay": "Replay",
                  "reapplication": "Reapplication", "seed": "Seeded sample (not executed)"}
+
+
+def review_json(a: m.ReviewAction) -> dict[str, Any]:
+    return {"id": a.id, "action": a.action, "reason": a.reason, "message": a.message, "actor": a.actor,
+            "run_id": a.run_id, "previous_status": a.previous_status, "new_status": a.new_status,
+            "overridden_rules": reasons(a.overridden_rules or []), "at": iso(a.created_at)}
 
 
 def case_link(c: m.Case) -> dict[str, Any]:
@@ -141,11 +148,20 @@ def case_detail_json(c: m.Case, version: int | None = None) -> dict[str, Any]:
     session = object_session(c)
     previous = session.get(m.Case, c.previous_case_id) if session and c.previous_case_id else None
     later = superseded_by(session, c) if session else []
+    actions = list(session.query(m.ReviewAction).filter(m.ReviewAction.case_id == c.id)
+                   .order_by(m.ReviewAction.id)) if session else []
+    opts = review_options(c, actions)
+    decided_by_human = human_decided_since_last_run(c, actions)
     return {
         **case_row_json(c),
         "pan": c.pan,
         "can_resubmit": c.status == "PENDING" and not (latest_run and latest_run.status in ("queued", "running")),
-        "can_replay": not (latest_run and latest_run.status in ("queued", "running")),
+        "can_replay": not (latest_run and latest_run.status in ("queued", "running")) and not decided_by_human,
+        "can_review": opts.can_review,
+        "can_approve": opts.can_approve,
+        "approve_blocked_reason": opts.approve_blocked_reason,
+        "review_actions": [review_json(a) for a in actions],
+        "human_decision": review_json(actions[-1]) if decided_by_human else None,
         "can_reapply": bool(session) and can_reapply(session, c),
         "previous_case": case_link(previous) if previous else None,
         "superseded_by": [case_link(x) for x in later],

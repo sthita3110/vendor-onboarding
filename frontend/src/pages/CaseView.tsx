@@ -12,6 +12,7 @@ import {
 } from '../api'
 import { AuditTimeline } from '../components/AuditTimeline'
 import { Evidence } from '../components/Evidence'
+import { ReviewPanel } from '../components/ReviewPanel'
 import { Button, Card, ErrorNote, ReasonChips, Spinner, StatusBadge, Tag } from '../components/ui'
 import { dateTime, relativeTime } from '../lib/format'
 import { cx } from '../lib/style'
@@ -256,7 +257,8 @@ export function CaseView() {
             </select>
           )}
           <Button variant="secondary" onClick={() => replay.mutate()} disabled={!c.can_replay || replay.isPending}
-            title="Execute the full pipeline again on the current version">
+            title={c.human_decision ? 'A reviewer decided this case — replaying would override them'
+              : 'Execute the full pipeline again on the current version'}>
             <PlayCircle className="size-4" /> {replay.isPending ? 'Starting…' : 'Replay'}
           </Button>
           {c.can_resubmit && (
@@ -326,8 +328,31 @@ export function CaseView() {
         </div>
 
         <aside className="space-y-4">
+          {c.can_review && !viewingOld && <ReviewPanel c={c} />}
+          {c.human_decision && !viewingOld && (
+            <Card className="p-4">
+              <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Reviewer decision</div>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <StatusBadge status={c.display_status} />
+                <span className="text-sm text-slate-600">by {c.human_decision.actor} · {dateTime(c.human_decision.at)}</span>
+              </div>
+              <p className="mt-2 text-sm text-slate-800">“{c.human_decision.reason}”</p>
+              {c.human_decision.overridden_rules.length > 0 && (
+                <div className="mt-2 text-xs text-slate-500">
+                  Overrode: <ReasonChips reasons={c.human_decision.overridden_rules} max={6} />
+                </div>
+              )}
+              {c.human_decision.message && (
+                <div className="mt-3 rounded-md bg-amber-50 px-2.5 py-1.5 text-sm text-amber-900 ring-1 ring-amber-200">
+                  <span className="font-medium">Asked the vendor: </span>{c.human_decision.message}
+                </div>
+              )}
+            </Card>
+          )}
           <Card className="p-4">
-            <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Decision · version {c.selected_version}</div>
+            <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              {c.human_decision ? 'System decision' : 'Decision'} · version {c.selected_version}
+            </div>
             {decision ? (
               <>
                 <div className="mt-2"><StatusBadge status={decision.display_status} /></div>

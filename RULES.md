@@ -177,6 +177,19 @@ Three distinct actions, never a duplicate case:
 
 There is deliberately no "create anyway". Without a PAN or GSTIN there is nothing to match on; the case is created and COMP-01 asks for them.
 
+## 4c. Human review (internal-review cases)
+
+| Action | Case becomes | Required | Notes |
+|---|---|---|---|
+| Approve | Approved | reviewer, reason | The findings on the case are recorded as overridden |
+| Request info | Awaiting vendor | reviewer, internal reason, message to the vendor | Leaves the review queue; the vendor resubmits |
+| Reject | Rejected | reviewer, reason | Findings kept as the rejection reasons; the vendor may later Reapply (PRIOR-01 applies) |
+
+A reviewer can overrule a judgement finding but can't approve past missing evidence. **Approve is refused** when any check
+on the latest run was blocked or errored (it never ran — e.g. SYS-01, or a DOC-03 misread that blocked cross-checks), or when
+the vendor still owes items (an incomplete application). **Replay is blocked** once a reviewer has acted on the latest run:
+it would override a human decision; new information comes in by Resubmit or Reapply.
+
 ## 5. Golden cases
 
 All sample values are fictitious. PANs follow real structure (4th char = holder type, 5th char = first letter of the entity name). GSTIN check digits are computed by `backend/scripts/generate_data.py`; values shown as `…` are filled by the generator. Generated packets live in `backend/data/samples/`; tests in `backend/tests/test_golden.py`. Each case asserts: final status, sub-state, and the **exact set** of failing rule IDs.

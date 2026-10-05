@@ -34,6 +34,13 @@ function describe(e: AuditEvent): { text: string; tone?: 'bad' | 'good' | 'muted
       return { text: `Decision: ${word}`, tone: word === 'Approved' ? 'good' : word === 'Rejected' ? 'bad' : undefined,
         note: String(d.summary ?? '') }
     }
+    case 'review.approve':
+      return { text: 'Reviewer approved', tone: 'good', note: `“${d.reason}”` + (Array.isArray(d.overridden_rules) && d.overridden_rules.length ? ` · overrode ${(d.overridden_rules as string[]).join(', ')}` : '') }
+    case 'review.reject': return { text: 'Reviewer rejected', tone: 'bad', note: `“${d.reason}”` }
+    case 'review.request_info':
+      return { text: 'Reviewer requested information', note: `To vendor: “${d.message}” · reason: “${d.reason}”` }
+    case 'duplicate_submission.blocked': return { text: 'Duplicate submission blocked', tone: 'muted', note: 'Someone tried to start a new case for this vendor; they were sent here instead.' }
+    case 'case.reapplied': return { text: `Reapplied as ${d.new_reference}`, note: 'A new application was created and linked to this rejected case.' }
     case 'status.changed':
       return { text: `Status: ${statusWord(d.before)} → ${statusWord(d.after)}`, tone: 'muted', note: d.reason ? String(d.reason) : undefined }
     default: return { text: e.event }
