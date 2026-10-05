@@ -85,6 +85,22 @@ def prior_rejections(session: Session, form: SubmissionForm, exclude_case_id: in
     return out
 
 
+def resent_flagged_files(case: m.Case, sub: m.Submission) -> dict[str, int]:
+    """Slots where this version contains a newly uploaded file identical (same content hash) to one an earlier
+    version's run rejected as the wrong document (DOC-01). Maps slot -> the version that flagged it.
+    Carried-over files don't count: the vendor didn't re-send them."""
+    resent = {d.slot: d.sha256 for d in sub.documents if not d.carried_over}
+    out: dict[str, int] = {}
+    for run in case.runs:
+        if run.submission.version >= sub.version:
+            continue
+        for r in run.check_results:
+            slot, sha = r.evidence.get("slot"), r.evidence.get("sha256")
+            if r.rule_id == "DOC-01" and r.status == "fail" and sha and resent.get(slot) == sha:
+                out[slot] = run.submission.version
+    return out
+
+
 def create_case(session: Session, form: SubmissionForm, uploads: list[UploadedFile], *,
                 submitted_by: str = "vendor", source: str = "form", sample_id: str | None = None,
                 previous_case_id: int | None = None) -> m.Case:

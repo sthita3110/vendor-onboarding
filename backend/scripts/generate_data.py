@@ -76,9 +76,15 @@ def field(value: str, label: str, grounded: str = "text") -> dict:
     return {"value": value, "quote": f"{label}: {value}", "page": 1, "grounded": grounded}
 
 
+def type_evidence(text: str, grounded: str = "text") -> dict:
+    """The printed text that shows what kind of document it is (what the model must quote)."""
+    return {"value": text, "quote": text, "page": 1, "grounded": grounded}
+
+
 def gst_doc(legal: str, trade: str, g: str, address: str, constitution: str = "Private Limited Company") -> dict:
     return {
         "slot": "gst_certificate", "filename": "gst_certificate.pdf", "classified_type": "gst_certificate",
+        "type_evidence": type_evidence("Registration Certificate"),
         "fields": {
             "legal_name": field(legal, "Legal Name"),
             "trade_name": field(trade, "Trade Name, if any"),
@@ -95,7 +101,7 @@ def pan_doc(name: str, pan: str, scanned: bool = False) -> dict:
     g = "image" if scanned else "text"
     return {
         "slot": "pan_card", "filename": "pan_card_scan.pdf" if scanned else "pan_card.pdf",
-        "classified_type": "pan_card",
+        "classified_type": "pan_card", "type_evidence": type_evidence("PERMANENT ACCOUNT NUMBER CARD", g),
         "fields": {"name": field(name, "Name", g), "pan": field(pan, "Permanent Account Number", g)},
     }
 
@@ -103,6 +109,7 @@ def pan_doc(name: str, pan: str, scanned: bool = False) -> dict:
 def cheque_doc(holder: str, account: str, ifsc: str, bank: str) -> dict:
     return {
         "slot": "bank_proof", "filename": "cancelled_cheque.pdf", "classified_type": "bank_proof",
+        "type_evidence": type_evidence("A/c No."),
         "fields": {
             "account_holder_name": field(holder, "For"),
             "account_number": field(account, "A/c No"),
@@ -115,6 +122,7 @@ def cheque_doc(holder: str, account: str, ifsc: str, bank: str) -> dict:
 def invoice_in_bank_slot() -> dict:
     return {
         "slot": "bank_proof", "filename": "INV-2026-0418.pdf", "classified_type": "invoice",
+        "type_evidence": type_evidence("TAX INVOICE"),
         "fields": {
             "invoice_number": field("INV-2026-0418", "Invoice No"),
             "invoice_date": field("2026-09-18", "Date"),

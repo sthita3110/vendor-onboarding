@@ -32,6 +32,7 @@ from app.db.repository import (
     is_open,
     load_uploads,
     prior_rejections,
+    resent_flagged_files,
     save_evaluation,
     superseded_by,
     set_case_status,
@@ -354,6 +355,7 @@ def run_pipeline(run_id: int, deps: PipelineDeps | None = None) -> None:
             reference = run.case.reference
             # Case history for PRIOR-01: earlier rejected applications by the same entity (not this case).
             prior = prior_rejections(s, form, exclude_case_id=case_id)
+            resent = resent_flagged_files(run.case, run.submission)  # layer 2: re-sent a file we rejected
             audit(s, case_id, "run.started", run_id=run_id)
 
         # 0. intake
@@ -365,7 +367,8 @@ def run_pipeline(run_id: int, deps: PipelineDeps | None = None) -> None:
         # Rule stages share one RunState. Completeness only needs to know which slots were uploaded,
         # so it runs on placeholders; real extracted documents replace them after reading.
         placeholders = {u.slot: DocumentInput(slot=u.slot, filename=u.filename) for u in uploads}  # type: ignore[arg-type]
-        state = RunState(case=CaseInput(submission=form, documents=placeholders, prior_rejections=prior), ctx=deps.ctx)
+        state = RunState(case=CaseInput(submission=form, documents=placeholders, prior_rejections=prior,
+                                        resent_flagged=resent), ctx=deps.ctx)
         extractions: dict[str, Extraction] = {}
 
         for key, _label in STAGES[1:8]:
@@ -382,7 +385,7 @@ def run_pipeline(run_id: int, deps: PipelineDeps | None = None) -> None:
                 else:
                     extractions = read_documents(reader, uploads, deps.cache)
                 state.case = CaseInput(submission=form, documents={s_: ex.document for s_, ex in extractions.items()},
-                                       prior_rejections=prior)
+                                       prior_rejections=prior, resent_flagged=resent)
                 outcome, summary, details = _summarize_reading(extractions, time.monotonic() - start)
             else:
                 before = len(state.results)

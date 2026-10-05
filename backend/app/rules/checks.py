@@ -233,11 +233,23 @@ def stage_doc_processing(s: RunState) -> None:
             continue
         doc = s.doc(slot)
         assert doc is not None
-        ev = {"slot": slot, "filename": doc.filename, "classified_type": doc.classified_type}
+        ev = {"slot": slot, "filename": doc.filename, "classified_type": doc.classified_type, "sha256": doc.sha256}
+        if doc.type_evidence:
+            ev["type_evidence"] = {"quote": doc.type_evidence.value, "page": doc.type_evidence.page,
+                                   "grounded": doc.type_evidence.grounded}
         if doc.classified_type is None:
             s.doc_blockers[slot] = "DOC-01"
             s.errored("DOC-01", f"Couldn't identify the {label}", "Document classification did not complete.",
                       subject=label, evidence=ev)
+        elif doc.classified_type != slot and (reason := _unreliable_type(s, slot, doc)):
+            # The AI says "wrong document", but that verdict can't be trusted: our problem, so a person looks
+            # instead of asking the vendor to replace a document that may be perfectly valid.
+            s.doc_blockers[slot] = "DOC-03"
+            found = DOC_LABELS.get(doc.classified_type, doc.classified_type)
+            s.failed("DOC-03", f"Couldn't reliably identify the {label}", subject=label, evidence=ev,
+                     detail=(f"The AI identified the file as {found}, but {reason}. Open the document to check "
+                             f"what it is; if it is a valid {label}, the identification was wrong."))
+            s.blocked("DOC-01", "DOC-03", subject=label)
         elif doc.classified_type != slot:
             s.doc_blockers[slot] = "DOC-01"
             found = DOC_LABELS.get(doc.classified_type, doc.classified_type)
@@ -249,6 +261,25 @@ def stage_doc_processing(s: RunState) -> None:
             )
         else:
             s.passed("DOC-01", f"{cap(label)} is the right document type", subject=label, evidence=ev)
+
+
+def _unreliable_type(s: RunState, slot: str, doc: DocumentInput) -> str | None:
+    """Why a wrong-type verdict can't be trusted, or None if it can (then the vendor is asked to replace the file).
+
+    Layer 2 — the vendor re-sent the identical file we already rejected as the wrong document: they evidently
+    believe it is right, and asking again would loop (the model reads the same file the same way).
+    Layer 1 — on a PDF with a text layer, the text the model quoted as evidence of the type isn't on the page.
+    Scans can't be checked against text, and hand-built fixtures carry no evidence: both keep the original path.
+    """
+    if slot in s.case.resent_flagged:
+        return (f"the vendor re-sent the same file we flagged as the wrong document on version "
+                f"{s.case.resent_flagged[slot]}")
+    ev = doc.type_evidence
+    if ev is not None and ev.grounded == "unverified":
+        return f"the text it quoted as evidence (“{ev.value}”) isn't printed on the document"
+    if ev is None and doc.fields and any(f.grounded == "text" for f in doc.fields.values()):
+        return "it gave no evidence for that type on a document whose text it could read"
+    return None
 
 
 # ---------- stage 3: extraction ----------
@@ -289,6 +320,8 @@ def stage_extraction(s: RunState) -> None:
     # blocked from cross-checks so a misread never masquerades as "doesn't match the form".
     for slot in REQUIRED_DOCS:
         label = DOC_LABELS[slot]
+        if s.doc_blockers.get(slot) == "DOC-03":
+            continue  # already reported by the document-type check above
         if slot in s.doc_blockers:
             s.blocked("DOC-03", s.doc_blockers[slot], subject=label)
             continue

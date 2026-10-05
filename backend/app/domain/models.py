@@ -66,6 +66,8 @@ class DocumentInput(BaseModel):
     fields: dict[str, ExtractedField] = Field(default_factory=dict)
     extraction_error: str | None = None  # set when the LLM call failed (system error)
     file_problem: str | None = None  # file can't be used (unsupported, damaged, password) -> FILE-01, vendor fix
+    sha256: str | None = None  # content fingerprint of the uploaded file
+    type_evidence: ExtractedField | None = None  # the text the model says shows the document type (grounded)
 
     def value(self, name: str) -> str | None:
         f = self.fields.get(name)
@@ -89,6 +91,9 @@ class CaseInput(BaseModel):
     documents: dict[DocSlot, DocumentInput] = Field(default_factory=dict)
     # Case history supplied by the pipeline from the database; empty for a first application.
     prior_rejections: list[PriorRejection] = Field(default_factory=list)
+    # Slots where the vendor re-sent the *identical* file we flagged as the wrong document on an earlier version
+    # (slot -> that version). A wrong-type verdict on such a file goes to a person, not back to the vendor (layer 2).
+    resent_flagged: dict[str, int] = Field(default_factory=dict)
 
 
 # ---------- Check results and decision ----------

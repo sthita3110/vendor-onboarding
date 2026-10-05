@@ -23,7 +23,9 @@ def raw_from_truth(doc: dict) -> dict:
     fields = {name: {"value": None, "quote": None, "page": None} for name in ALL_FIELDS}
     for name, f in doc["fields"].items():
         fields[name] = {"value": f["value"], "quote": f["quote"], "page": f["page"]}
-    return {"doc_type": doc["classified_type"], "readable": doc.get("readable", True), "fields": fields}
+    ev = doc.get("type_evidence") or {}
+    return {"doc_type": doc["classified_type"], "readable": doc.get("readable", True), "fields": fields,
+            "type_evidence": {"quote": ev.get("value"), "page": ev.get("page")}}
 
 
 class FakeReader:

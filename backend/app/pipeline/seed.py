@@ -17,6 +17,7 @@ and the resubmission can be demonstrated live with E3R's files.
 
 from __future__ import annotations
 
+import hashlib
 import logging
 import shutil
 
@@ -28,7 +29,7 @@ from app.db.audit import audit
 from app.db.engine import get_engine, session_scope
 from app.db.storage import uploads_root
 from app.db.repository import create_case, create_run, save_evaluation
-from app.domain.models import CaseInput, DocumentInput, Evaluation
+from app.domain.models import CaseInput, Evaluation
 from app.llm.extract import Extraction
 from app.messages.compose import compose
 from app.messages.notify import context_for, record_message
@@ -100,21 +101,24 @@ def seed_demo_cases() -> list[int]:
     prepared = []
     for cid in SEED_IDS:  # derive and verify everything before writing anything
         sample = load_sample(cid)
-        ev = evaluate(CaseInput.model_validate(sample["case"]), ctx)
+        case_input = CaseInput.model_validate(sample["case"])
+        for upload in sample_uploads(sample):  # fingerprint the real files, as a live run would
+            case_input.documents[upload.slot].sha256 = hashlib.sha256(upload.data).hexdigest()
+        ev = evaluate(case_input, ctx)
         _check_expected(cid, sample, ev)
-        prepared.append((cid, sample, ev))
+        prepared.append((cid, sample, case_input, ev))
 
     case_ids = []
     with session_scope() as s:  # one transaction: all seeded cases or none
-        for cid, sample, ev in prepared:
+        for cid, sample, case_input, ev in prepared:
             case = create_case(s, sample_submission(sample), sample_uploads(sample), submitted_by=SEED_ACTOR,
                                source="seed", sample_id=cid)
             run = create_run(s, case, case.submissions[0], trigger="seed")
             run.started_at = run.finished_at = m.utcnow()
             run.status = "completed"
-            extractions = {slot: Extraction(document=DocumentInput.model_validate(doc), raw=None,
+            extractions = {slot: Extraction(document=doc, raw=None,
                                             meta={"source": "seed", "note": "sample ground truth; not read by the model"})
-                           for slot, doc in sample["case"]["documents"].items()}
+                           for slot, doc in case_input.documents.items()}
             s.add_all(_stage_rows(run, ev, len(extractions)))
             save_evaluation(s, run, extractions, ev)
             d = ev.decision

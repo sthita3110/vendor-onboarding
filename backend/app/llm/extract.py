@@ -10,6 +10,7 @@ Per document:  file intake check -> cache lookup -> model call -> map fields -> 
 from __future__ import annotations
 
 import time
+import hashlib
 import logging
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
@@ -70,17 +71,23 @@ def to_document(slot: str, filename: str, raw: dict[str, Any]) -> DocumentInput:
         value = f.get("value")
         if value is not None and str(value).strip():
             fields[name] = ExtractedField(value=str(value).strip(), quote=f.get("quote"), page=f.get("page"))
+    evidence = raw.get("type_evidence") or {}
+    type_evidence = (ExtractedField(value=str(evidence["quote"]).strip(), quote=str(evidence["quote"]).strip(),
+                                    page=evidence.get("page"))
+                     if evidence.get("quote") and str(evidence["quote"]).strip() else None)
     return DocumentInput(
         slot=slot,  # type: ignore[arg-type]
         filename=filename,
         classified_type=doc_type,
         readable=bool(raw["readable"]),
         fields=fields,
+        type_evidence=type_evidence,
     )
 
 
 def _failed(upload: UploadedFile, meta: dict[str, Any], **problem: str) -> Extraction:
-    doc = DocumentInput(slot=upload.slot, filename=upload.filename, classified_type=None, **problem)  # type: ignore[arg-type]
+    doc = DocumentInput(slot=upload.slot, filename=upload.filename, classified_type=None,  # type: ignore[arg-type]
+                        sha256=hashlib.sha256(upload.data).hexdigest(), **problem)
     return Extraction(document=doc, meta=meta)
 
 
@@ -121,6 +128,7 @@ def read_document(reader: DocumentReader, upload: UploadedFile, cache: Extractio
     if cache and not entry:  # only cache outputs that mapped cleanly
         cache.put(key, {"raw": raw, "meta": {k: meta[k] for k in ("model", "prompt_version", "latency_ms",
                                                                     "input_tokens", "output_tokens")}})
+    doc.sha256 = hashlib.sha256(upload.data).hexdigest()
     return Extraction(document=apply_grounding(doc, upload.data, mime), raw=raw, meta=meta)
 
 

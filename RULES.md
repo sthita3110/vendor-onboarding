@@ -96,7 +96,7 @@ GST state codes used in samples: `07` Delhi · `27` Maharashtra · `29` Karnatak
 | **FILE-01** | doc processing | File can't be used: empty, > 10 MB, not PDF/PNG/JPG (by content), damaged, password-protected, > 10 pages. Checked before any AI call | VENDOR_ACTION | Yes — the specific fix (e.g. "upload a copy without a password") |
 | **DOC-01** | doc processing | Classified type ≠ slot's expected type | VENDOR_ACTION | Yes — "file in X slot appears to be Y" |
 | **DOC-02** | extraction | Document unreadable, or a key field not found | VENDOR_ACTION | Yes — re-upload clearer copy |
-| **DOC-03** | extraction | Document couldn't be read reliably: a key value is not in the PDF's text layer (grounding), or an extracted GSTIN / PAN / IFSC / account number fails its format rule (catches misreads on scans too) | REVIEW | Neutral — our misread, not the vendor's problem |
+| **DOC-03** | extraction | Document couldn't be read reliably: a key value is not in the PDF's text layer (grounding), or an extracted GSTIN / PAN / IFSC / account number fails its format rule (catches misreads on scans too) — **or the AI's "wrong document" verdict can't be trusted** (see below) | REVIEW | Neutral — our misread, not the vendor's problem |
 | **TAX-01** | validation | GSTIN or PAN on the form fails format/checksum | VENDOR_ACTION | Yes — likely typo |
 | **TAX-02** | cross-check | GSTIN on certificate ≠ form, or PAN on PAN card ≠ form (all valid) | REVIEW | Neutral |
 | **TAX-03** | cross-check | PAN embedded in GSTIN (chars 3–12) ≠ submitted PAN / PAN card | REVIEW | Neutral |
@@ -125,6 +125,18 @@ GST state codes used in samples: `07` Delhi · `27` Maharashtra · `29` Karnatak
 | Model / provider failure | SYS-01 | Internal review | Our failure — re-uploading the same file would fail the same way |
 
 Test: *can the vendor fix this by doing something different?* If yes → vendor; if no → us.
+
+**Bad document or AI mistake?** When the AI says a file is the wrong type, the verdict is checked before the vendor is
+asked to replace it:
+
+| Signal | Outcome |
+|---|---|
+| The text the model quoted as evidence of the type (e.g. "TAX INVOICE") **is printed on the page** | Genuinely the wrong document → DOC-01, vendor |
+| The quoted evidence **isn't on the page**, or no evidence was given for a readable PDF | Identification unreliable → DOC-03, a person checks the document |
+| The vendor **re-sent the identical file** (same content hash) we flagged as the wrong document on an earlier version | → DOC-03, a person — never asked twice (the model would read it the same way) |
+| Scanned image (no text layer to check) | DOC-01, vendor; the re-send rule is the backstop |
+
+Replaying the same version is not a re-send. A file carried over unchanged is not a re-send.
 
 ### Dependencies (→ `blocked` status, not `error`)
 

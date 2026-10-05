@@ -35,6 +35,13 @@ EXTRACTION_SCHEMA: dict[str, Any] = {
     "type": "object",
     "properties": {
         "doc_type": {"type": "string", "enum": DOC_TYPES},
+        # Verbatim text that shows what kind of document this is; checked against the page (layer 1).
+        "type_evidence": {
+            "type": "object",
+            "properties": {"quote": {"type": ["string", "null"]}, "page": {"type": ["integer", "null"]}},
+            "required": ["quote", "page"],
+            "additionalProperties": False,
+        },
         "readable": {"type": "boolean"},
         "fields": {
             "type": "object",
@@ -43,6 +50,6 @@ EXTRACTION_SCHEMA: dict[str, Any] = {
             "additionalProperties": False,
         },
     },
-    "required": ["doc_type", "readable", "fields"],
+    "required": ["doc_type", "type_evidence", "readable", "fields"],
     "additionalProperties": False,
 }

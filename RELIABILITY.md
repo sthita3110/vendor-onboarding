@@ -47,3 +47,20 @@ In every drill the system **failed closed**: no path led to an approval.
    (`Incorrect API key provided: sk-inval***`). Errors are now reduced to a plain category; full detail goes only to
    the server log.
 3. **Message-summary wording was lower-cased and truncated** ("template (ai unavailable: authen…").
+
+## Document-type verification (added after the first runs)
+
+The one AI output previously trusted unchecked was the document type: a valid cheque misread as an invoice would have
+been sent back to the vendor, and the same file would likely fail again. Now the model quotes its evidence for the type
+and that quote must be on the page; a re-sent identical file that we flagged is never sent back twice (see RULES.md).
+
+| Check | Result |
+|---|---|
+| Live golden tests, new prompt | **8 / 8** |
+| Live stability, 5 runs each, one case at a time | **40 / 40** correct — E3's real invoice still goes to the vendor every time (its evidence "TAX INVOICE" is grounded) |
+| Same document, old vs new prompt, interleaved | median **9.3 s vs 9.4 s** — no latency cost (the old prompt also had a 55 s stall: provider-side) |
+
+One earlier 3-run batch had a single transient read failure on E3R's GST certificate; the case **failed closed to
+internal review (SYS-01)**, and six immediate retries plus the 40-run batch were clean. Read failures are now printed
+by `run_golden_live`. Latency varies with the provider's load during the day (p50 ~6–9 s earlier, ~9–13 s later);
+hedged requests absorb the tail.

@@ -37,6 +37,12 @@
         "slot": "gst_certificate",
         "filename": "gst_certificate.pdf",
         "classified_type": "gst_certificate",
+        "type_evidence": {
+          "value": "Registration Certificate",
+          "quote": "Registration Certificate",
+          "page": 1,
+          "grounded": "text"
+        },
         "fields": {
           "legal_name": {
             "value": "LUMEN ANALYTICS PRIVATE LIMITED",
@@ -80,6 +86,12 @@
         "slot": "pan_card",
         "filename": "pan_card_scan.pdf",
         "classified_type": "pan_card",
+        "type_evidence": {
+          "value": "PERMANENT ACCOUNT NUMBER CARD",
+          "quote": "PERMANENT ACCOUNT NUMBER CARD",
+          "page": 1,
+          "grounded": "image"
+        },
         "fields": {
           "name": {
             "value": "LUMEN ANALYTICS PRIVATE LIMITED",
@@ -99,6 +111,12 @@
         "slot": "bank_proof",
         "filename": "cancelled_cheque.pdf",
         "classified_type": "bank_proof",
+        "type_evidence": {
+          "value": "A/c No.",
+          "quote": "A/c No.",
+          "page": 1,
+          "grounded": "text"
+        },
         "fields": {
           "account_holder_name": {
             "value": "LUMEN ANALYTICS PVT. LTD.",

@@ -1,7 +1,7 @@
 """Extraction prompt. Bump PROMPT_VERSION on any change: it is part of the extraction cache key and
 is recorded on every extraction for reproducibility."""
 
-PROMPT_VERSION = "extract-v1"
+PROMPT_VERSION = "extract-v2"
 
 EXTRACTION_INSTRUCTIONS = """\
 You read documents uploaded during vendor onboarding for an Indian procurement team.
@@ -33,6 +33,10 @@ Field meanings:
   account_number (the labelled account number, never the MICR code line at the bottom of a cheque),
   ifsc, bank_name.
 - invoice: invoice_number, invoice_date, total_amount (the grand total).
+
+type_evidence: the exact text printed on the document that shows what kind of document it is — copied verbatim,
+e.g. its title ("TAX INVOICE", "Registration Certificate", "PERMANENT ACCOUNT NUMBER CARD") or, for a cheque, the
+printed cheque wording such as "Pay", "Rupees" or "A/c No.". Give its 1-based page. Use null only if no such text exists.
 
 readable: false only if the document is too blurry, cropped or obscured to read its key fields reliably.
 Ignore watermarks and stamps (for example "SPECIMEN", "COPY", "CANCELLED") when reading values.

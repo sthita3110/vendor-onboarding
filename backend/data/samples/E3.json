@@ -38,6 +38,12 @@
         "slot": "gst_certificate",
         "filename": "gst_certificate.pdf",
         "classified_type": "gst_certificate",
+        "type_evidence": {
+          "value": "Registration Certificate",
+          "quote": "Registration Certificate",
+          "page": 1,
+          "grounded": "text"
+        },
         "fields": {
           "legal_name": {
             "value": "KAVERI PACKAGING PRIVATE LIMITED",
@@ -81,6 +87,12 @@
         "slot": "pan_card",
         "filename": "pan_card.pdf",
         "classified_type": "pan_card",
+        "type_evidence": {
+          "value": "PERMANENT ACCOUNT NUMBER CARD",
+          "quote": "PERMANENT ACCOUNT NUMBER CARD",
+          "page": 1,
+          "grounded": "text"
+        },
         "fields": {
           "name": {
             "value": "KAVERI PACKAGING PRIVATE LIMITED",
@@ -100,6 +112,12 @@
         "slot": "bank_proof",
         "filename": "INV-2026-0418.pdf",
         "classified_type": "invoice",
+        "type_evidence": {
+          "value": "TAX INVOICE",
+          "quote": "TAX INVOICE",
+          "page": 1,
+          "grounded": "text"
+        },
         "fields": {
           "invoice_number": {
             "value": "INV-2026-0418",

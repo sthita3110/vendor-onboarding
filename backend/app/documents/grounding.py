@@ -28,7 +28,7 @@ def squash(text: str) -> str:
 
 def apply_grounding(doc: DocumentInput, data: bytes, mime: str) -> DocumentInput:
     text = squash(pdf_text(data)) if mime == "application/pdf" else ""
-    for f in doc.fields.values():
+    for f in [*doc.fields.values(), *([doc.type_evidence] if doc.type_evidence else [])]:
         if not text:
             f.grounded = "image"
         elif f.value and squash(f.value) and squash(f.value) in text:

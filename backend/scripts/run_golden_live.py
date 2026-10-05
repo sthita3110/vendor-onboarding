@@ -39,7 +39,9 @@ def run_once(cid: str, reader, cache, ctx) -> dict:
     misreads = []
     for slot, ex in extractions.items():
         score = score_document(sample["case"]["documents"][slot], ex.document)
-        if not score.type_ok:
+        if ex.document.extraction_error:
+            misreads.append(f"{slot}: read failed — {ex.document.extraction_error}")
+        elif not score.type_ok:
             misreads.append(f"{slot}: type {score.got_type}")
         misreads += [f"{slot}: {m}" for m in score.key_mismatches]
     hedged = sum(bool(ex.meta.get("hedged")) for ex in extractions.values())
