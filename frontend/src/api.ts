@@ -300,6 +300,24 @@ export interface ReviewActionView {
   at: string
 }
 
+export interface VendorMessage {
+  id: number
+  case_id: number
+  run_id: number | null
+  kind: 'approved' | 'action_needed' | 'under_review' | 'rejected'
+  source: 'decision' | 'review' | null
+  recipient: string | null
+  subject: string
+  body: string
+  items: string[]
+  generated_by: string
+  ai_drafted: boolean
+  status: string
+  created_at: string
+  reference?: string
+  vendor_name?: string | null
+}
+
 export interface CaseDetail extends CaseRow {
   pan: string | null
   can_resubmit: boolean
@@ -310,6 +328,7 @@ export interface CaseDetail extends CaseRow {
   approve_blocked_reason: string | null
   review_actions: ReviewActionView[]
   human_decision: ReviewActionView | null
+  messages: VendorMessage[]
   previous_case: CaseLink | null
   superseded_by: CaseLink[]
   selected_version: number
@@ -410,3 +429,5 @@ export function reviewCase(caseId: number, body: { action: ReviewActionView['act
 
 /** Demo-only: wipe all cases, runs, reviews, messages, audit history and uploads, then re-seed the samples. */
 export const resetDemo = () => api<{ reset: boolean; seeded_cases: number }>('/api/admin/reset-demo', { method: 'POST' })
+
+export const getOutbox = () => api<VendorMessage[]>('/api/outbox')

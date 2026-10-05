@@ -222,11 +222,12 @@ class ReviewRequest(BaseModel):
 
 
 @router.post("/cases/{case_id}/review")
-def review_endpoint(case_id: int, body: ReviewRequest) -> dict:
+def review_endpoint(case_id: int, body: ReviewRequest, deps: PipelineDeps = Depends(get_pipeline_deps)) -> dict:
     """A reviewer's decision on an internal-review case. Reason is mandatory; Approve is refused when checks
     didn't run or the vendor still owes items."""
     try:
-        row = review_case(case_id, body.action, reviewer=body.reviewer, reason=body.reason, message=body.message)
+        row = review_case(case_id, body.action, reviewer=body.reviewer, reason=body.reason, message=body.message,
+                          writer_factory=deps.message_writer_factory)
     except LookupError:
         raise HTTPException(404, f"Case {case_id} not found") from None
     except ReviewInvalid as e:
@@ -327,6 +328,14 @@ def metrics() -> dict:
         "top_reasons": [{"rule_id": rid, "issue": RULES[rid].issue, "count": n} for rid, n in reasons.most_common(5)],
         "seeded_cases": sum(c.source == "seed" for c in cases),
     }
+
+
+@router.get("/outbox")
+def outbox(limit: int = Query(200, le=500)) -> list[dict]:
+    """Every message sent to vendors (delivery simulated), newest first."""
+    with session_scope() as s:
+        rows = s.query(m.Communication).order_by(m.Communication.id.desc()).limit(limit)
+        return [ser.message_json(x, s.get(m.Case, x.case_id)) for x in rows]
 
 
 # ---------- demo administration ----------

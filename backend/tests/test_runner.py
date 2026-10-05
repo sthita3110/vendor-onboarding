@@ -64,7 +64,7 @@ def test_every_stage_is_recorded_in_order(db, ctx):
         assert by["doc_checks"].outcome == "issues" and "invoice" in by["doc_checks"].summary
         assert by["cross_check"].outcome == "issues" and by["cross_check"].details["failing_rules"] == ["TAX-04"]
         assert by["external_verify"].outcome == "pass" and "simulated" in by["external_verify"].summary
-        assert by["notify"].summary == "2 item(s) to request from the vendor"
+        assert by["notify"].summary.startswith("2 item(s) to request from the vendor · Message sent to the vendor")
 
 
 def test_read_stage_summary_mentions_scan(db, ctx):
@@ -186,4 +186,4 @@ def test_mixed_case_reviews_and_still_asks_vendor(db, ctx):
         assert case.failing_rules == ["BANK-03", "COMP-01"]
         assert run.decision.vendor_actions == ["Please provide your contact email."]
         notify = next(e for e in run.stage_events if e.stage == "notify")
-        assert notify.summary == "Added to the internal review queue · 1 item(s) to request from the vendor"
+        assert notify.summary.startswith("Added to the internal review queue · 1 item(s) to request from the vendor · ")

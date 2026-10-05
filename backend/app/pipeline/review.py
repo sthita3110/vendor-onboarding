@@ -14,6 +14,9 @@ from app.db import models as m
 from app.db.audit import audit
 from app.db.engine import session_scope
 from app.db.repository import set_case_status
+from app.llm.messages import make_message_writer
+from app.messages.compose import private_terms_from
+from app.messages.notify import send_vendor_message
 
 ACTIONS = {"approve", "request_info", "reject"}
 
@@ -61,7 +64,8 @@ def review_options(case: m.Case, actions: list[m.ReviewAction]) -> ReviewOptions
     return ReviewOptions(True, True, None)
 
 
-def review_case(case_id: int, action: str, *, reviewer: str, reason: str, message: str | None = None) -> m.ReviewAction:
+def review_case(case_id: int, action: str, *, reviewer: str, reason: str, message: str | None = None,
+                writer_factory=make_message_writer) -> m.ReviewAction:
     reviewer, reason, message = (reviewer or "").strip(), (reason or "").strip(), (message or "").strip() or None
     if action not in ACTIONS:
         raise ReviewInvalid(f"Unknown action '{action}'")
@@ -105,4 +109,17 @@ def review_case(case_id: int, action: str, *, reviewer: str, reason: str, messag
         set_case_status(s, case, new_status, new_sub, failing, actor=reviewer, run_id=row.run_id,
                         reason=f"Reviewer {action.replace('_', ' ')}: {reason}")
         s.flush()
-        return row
+        # Vendor message: outstanding vendor asks plus, for request info, the reviewer's own words.
+        items = list(run.decision.vendor_actions) if run and run.decision and action == "request_info" else []
+        if action == "request_info":
+            items.append(message)
+        private = private_terms_from([r.evidence for r in run.check_results]) if run else set()
+        case_id_, run_id_ = case.id, row.run_id
+
+    try:
+        writer = writer_factory()
+    except Exception:
+        writer = None
+    send_vendor_message(case_id_, run_id_, new_status, new_sub, items, source="review", writer=writer,
+                        private_terms=private)
+    return row

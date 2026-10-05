@@ -40,6 +40,9 @@ function describe(e: AuditEvent): { text: string; tone?: 'bad' | 'good' | 'muted
     case 'review.request_info':
       return { text: 'Reviewer requested information', note: `To vendor: “${d.message}” · reason: “${d.reason}”` }
     case 'duplicate_submission.blocked': return { text: 'Duplicate submission blocked', tone: 'muted', note: 'Someone tried to start a new case for this vendor; they were sent here instead.' }
+    case 'message.sent':
+      return { text: `Message sent to the vendor: “${d.subject}”`, tone: 'muted',
+        note: `${String(d.generated_by).startsWith('llm:') ? 'AI-drafted wording' : String(d.generated_by)} · to ${d.recipient ?? 'no email on file'} · delivery simulated` }
     case 'case.reapplied': return { text: `Reapplied as ${d.new_reference}`, note: 'A new application was created and linked to this rejected case.' }
     case 'status.changed':
       return { text: `Status: ${statusWord(d.before)} → ${statusWord(d.after)}`, tone: 'muted', note: d.reason ? String(d.reason) : undefined }

@@ -33,6 +33,14 @@ TRIGGER_LABEL = {"submission": "Submitted", "resubmission": "Resubmitted", "repl
                  "reapplication": "Reapplication", "seed": "Seeded sample (not executed)"}
 
 
+def message_json(msg: m.Communication, case: m.Case | None = None) -> dict[str, Any]:
+    return {"id": msg.id, "case_id": msg.case_id, "run_id": msg.run_id, "kind": msg.kind, "source": msg.source,
+            "recipient": msg.recipient, "subject": msg.subject, "body": msg.body, "items": msg.items or [],
+            "generated_by": msg.generated_by, "ai_drafted": msg.generated_by.startswith("llm:"),
+            "status": msg.status, "created_at": iso(msg.created_at),
+            **({"reference": case.reference, "vendor_name": case.vendor_name} if case else {})}
+
+
 def review_json(a: m.ReviewAction) -> dict[str, Any]:
     return {"id": a.id, "action": a.action, "reason": a.reason, "message": a.message, "actor": a.actor,
             "run_id": a.run_id, "previous_status": a.previous_status, "new_status": a.new_status,
@@ -161,6 +169,8 @@ def case_detail_json(c: m.Case, version: int | None = None) -> dict[str, Any]:
         "can_approve": opts.can_approve,
         "approve_blocked_reason": opts.approve_blocked_reason,
         "review_actions": [review_json(a) for a in actions],
+        "messages": [message_json(x) for x in (session.query(m.Communication).filter(m.Communication.case_id == c.id)
+                                              .order_by(m.Communication.id.desc()) if session else [])],
         "human_decision": review_json(actions[-1]) if decided_by_human else None,
         "can_reapply": bool(session) and can_reapply(session, c),
         "previous_case": case_link(previous) if previous else None,

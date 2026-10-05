@@ -71,7 +71,8 @@ def test_reset_clears_reviews_audit_and_uploads():
     with session_scope() as s:
         assert s.query(m.ReviewAction).count() == 0
         assert {e.event for e in s.query(m.AuditEvent)} == {
-            "case.created", "submission.received", "run.created", "decision.made", "status.changed", "seed.loaded"}
+            "case.created", "submission.received", "run.created", "decision.made", "status.changed", "message.sent",
+            "seed.loaded"}
     assert len([p for p in uploads_root().rglob("*") if p.is_file()]) == 18  # only the seeded PDFs remain (6 cases x 3)
 
 

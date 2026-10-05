@@ -30,6 +30,8 @@ from app.db.storage import uploads_root
 from app.db.repository import create_case, create_run, save_evaluation
 from app.domain.models import CaseInput, DocumentInput, Evaluation
 from app.llm.extract import Extraction
+from app.messages.compose import compose
+from app.messages.notify import context_for, record_message
 from app.pipeline.runner import STAGES, notify_note, summarize_decision, summarize_rules
 from app.reference.data import REFERENCE_DIR, load_reference
 from app.rules.checks import EvaluationContext
@@ -80,7 +82,7 @@ def _stage_rows(run: m.Run, ev: Evaluation, n_docs: int) -> list[m.StageEvent]:
         elif key == "decision":
             outcome, summary, details = summarize_decision(ev.decision)
         elif key == "notify":
-            outcome, summary, details = "pass", notify_note(ev.decision), {}
+            outcome, summary, details = "pass", f"{notify_note(ev.decision)} · Message sent to the vendor (simulated) · Template", {}
         else:
             outcome, summary, details = summarize_rules(key, [r for r in ev.results if _DISPLAY_STAGE[r.stage] == key])
         rows.append(m.StageEvent(run_id=run.id, seq=seq, stage=key, label=label, status="done", outcome=outcome,
@@ -115,6 +117,9 @@ def seed_demo_cases() -> list[int]:
                            for slot, doc in sample["case"]["documents"].items()}
             s.add_all(_stage_rows(run, ev, len(extractions)))
             save_evaluation(s, run, extractions, ev)
+            d = ev.decision
+            ctx = context_for(case, d.status.value, d.sub_state.value if d.sub_state else None, list(d.vendor_actions))
+            record_message(s, case, run.id, compose(ctx, writer=None), source="decision")
             audit(s, case.id, "seed.loaded", actor=SEED_ACTOR, run_id=run.id, sample_id=cid,
                   note="Pre-populated demo history; the pipeline was not executed and no model was called.")
             case_ids.append(case.id)

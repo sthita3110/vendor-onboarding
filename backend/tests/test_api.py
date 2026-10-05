@@ -150,7 +150,7 @@ def test_audit_trail_is_ordered():
     case_id = submit("E4")["case_id"]
     events = [e["event"] for e in client.get(f"/api/cases/{case_id}/audit").json()]
     assert events[:3] == ["case.created", "submission.received", "run.created"]
-    assert events[-3:] == ["decision.made", "status.changed", "run.completed"]
+    assert events[-4:] == ["decision.made", "status.changed", "message.sent", "run.completed"]
 
 
 # ---------- metrics ----------

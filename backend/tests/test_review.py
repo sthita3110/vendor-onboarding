@@ -56,7 +56,7 @@ def test_approve_records_override_and_leaves_queue():
     assert [x["rule_id"] for x in hd["overridden_rules"]] == ["BANK-03"]
     assert e2 not in [x["id"] for x in client.get("/api/review-queue").json()]
     events = [e["event"] for e in client.get(f"/api/cases/{e2}/audit").json()]
-    assert events[-2:] == ["review.approve", "status.changed"]
+    assert events[-3:] == ["review.approve", "status.changed", "message.sent"]
 
 
 def test_reject_keeps_findings_as_the_reason():

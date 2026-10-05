@@ -196,12 +196,14 @@ class Communication(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     case_id: Mapped[int] = mapped_column(ForeignKey("cases.id"), index=True)
     run_id: Mapped[int | None] = mapped_column(ForeignKey("runs.id"))
-    kind: Mapped[str] = mapped_column(String(30))  # approved | awaiting_vendor | under_review | rejected | request_info
+    kind: Mapped[str] = mapped_column(String(30))  # approved | action_needed | under_review | rejected
     recipient: Mapped[str | None] = mapped_column(String(300))
     subject: Mapped[str] = mapped_column(String(300))
     body: Mapped[str] = mapped_column(Text)
-    generated_by: Mapped[str] = mapped_column(String(50))  # llm:<model> | template
+    generated_by: Mapped[str] = mapped_column(String(120))  # llm:<model> | template | template (why)
     status: Mapped[str] = mapped_column(String(30), default="sent (simulated)")
+    source: Mapped[str | None] = mapped_column(String(20))  # decision (system) | review (a person)
+    items: Mapped[list[Any] | None] = mapped_column(JSON)  # the checklist exactly as sent
     created_at: Mapped[datetime] = mapped_column(default=utcnow)
 
 

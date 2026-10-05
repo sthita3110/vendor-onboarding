@@ -30,6 +30,7 @@ class Settings:
     seed_demo: bool = True  # on startup, pre-populate demo cases if the database is empty
     frontend_dist: Path = _BACKEND.parent / "frontend" / "dist"  # built React app, served by FastAPI
     demo_reset: bool = True  # allow POST /api/admin/reset-demo (wipe + re-seed); turn off outside demos
+    messages_ai: bool = True  # AI-drafted subject/opening/closing for vendor messages (template otherwise)
 
 
 def get_settings() -> Settings:
@@ -47,4 +48,5 @@ def get_settings() -> Settings:
         seed_demo=os.getenv("SEED_DEMO", "on").lower() != "off",
         frontend_dist=Path(os.getenv("FRONTEND_DIST", str(_BACKEND.parent / "frontend" / "dist"))),
         demo_reset=os.getenv("DEMO_RESET", "on").lower() != "off",
+        messages_ai=os.getenv("MESSAGES_AI", "on").lower() != "off",
     )

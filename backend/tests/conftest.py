@@ -5,6 +5,7 @@ import os
 import pytest
 
 os.environ.setdefault("MOCK_LATENCY_MS", "0")  # simulated provider delay is for the live UI, not tests
+os.environ.setdefault("MESSAGES_AI", "off")  # tests use templates unless they inject a fake writer
 
 from app.domain.models import CaseInput
 from app.reference.data import SAMPLES_DIR

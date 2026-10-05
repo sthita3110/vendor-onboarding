@@ -12,7 +12,7 @@ Design docs: [ARCHITECTURE.md](ARCHITECTURE.md) · [RULES.md](RULES.md) · [ASSU
 | 2 — Documents + AI extraction (sample PDFs, OpenAI extraction, file checks, grounding, cache, live golden tests) | ✅ |
 | 3 — Orchestration + persistence + API (database, background runner, API, demo seeding + replay) | ✅ |
 | 4 — Frontend (dashboard, new vendor form, live run view, case page with evidence and audit, review queue, resubmit) | ✅ |
-| 5 — Communications + human review | 5a reviewer actions ✅ · 5b vendor messages — |
+| 5 — Communications + human review (reviewer actions, vendor messages + outbox, demo reset) | ✅ |
 | 6 — Hardening + demo | — |
 
 ## Run locally
@@ -72,6 +72,7 @@ Interactive docs: `/docs`.
 | POST | `/api/cases/{id}/replay?use_cache=false` | Execute the full pipeline again on the latest submission (fresh model calls by default) → new run |
 | GET | `/api/review-queue` | Internal-review cases, oldest first |
 | GET | `/api/cases/{id}/audit` | Audit timeline |
+| GET | `/api/outbox` | Every message sent to vendors (delivery simulated), newest first |
 | GET | `/api/metrics` | Counts by status, straight-through rate, median time to decision, top reasons |
 | GET | `/api/rules` | Rule catalog |
 | POST | `/api/admin/reset-demo` | Demo-only: wipe all cases, runs, reviews, messages, audit history and uploads; re-seed the 6 samples (409 while a run is in progress; disabled with `DEMO_RESET=off`) |

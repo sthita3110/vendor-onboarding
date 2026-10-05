@@ -41,6 +41,9 @@ from app.domain.models import Submission as SubmissionForm
 from app.llm.cache import ExtractionCache, make_cache
 from app.llm.client import DocumentReader, make_reader
 from app.llm.extract import Extraction, UploadedFile, read_documents
+from app.llm.messages import make_message_writer
+from app.messages.compose import MessageWriter, private_terms_from
+from app.messages.notify import send_vendor_message
 from app.pipeline.review import human_decided_since_last_run
 from app.rules import checks
 from app.rules.checks import EvaluationContext, RunState
@@ -91,6 +94,7 @@ class PipelineDeps:
     cache: ExtractionCache | None = field(default_factory=make_cache)
     ctx: EvaluationContext = field(default_factory=default_context)
     background: bool = True  # tests set False to run synchronously
+    message_writer_factory: Callable[[], MessageWriter | None] = make_message_writer
 
 
 _executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="pipeline")
@@ -402,7 +406,21 @@ def run_pipeline(run_id: int, deps: PipelineDeps | None = None) -> None:
         # 9. notify — vendor message generation arrives in Phase 5
         current = "notify"
         _mark(run_id, "notify", status="running", started_at=m.utcnow())
-        _mark(run_id, "notify", status="done", outcome="pass", summary=notify_note(decision), finished_at=m.utcnow())
+        note, message_summary = notify_note(decision), None
+        try:
+            try:
+                writer = deps.message_writer_factory()
+            except Exception:  # no key / misconfigured: template wording
+                writer = None
+            _msg, message_summary = send_vendor_message(
+                case_id, run_id, decision.status.value, decision.sub_state.value if decision.sub_state else None,
+                list(decision.vendor_actions), source="decision", writer=writer,
+                private_terms=private_terms_from([r.evidence for r in state.results]))
+        except Exception as e:  # messaging never fails a run; the decision stands
+            log.exception("Vendor message failed for run %s", run_id)
+            message_summary = f"Vendor message not sent ({type(e).__name__}) — follow up manually"
+        _mark(run_id, "notify", status="done", outcome="pass", summary=f"{note} · {message_summary}",
+              finished_at=m.utcnow())
 
         with session_scope() as s:
             run = s.get(m.Run, run_id)

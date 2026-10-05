@@ -39,6 +39,7 @@ export function ReviewPanel({ c }: { c: CaseDetail }) {
       queryClient.invalidateQueries({ queryKey: ['cases'] })
       queryClient.invalidateQueries({ queryKey: ['metrics'] })
       queryClient.invalidateQueries({ queryKey: ['review-queue'] })
+      queryClient.invalidateQueries({ queryKey: ['outbox'] })
     },
   })
   const choice = CHOICES.find((x) => x.action === action)

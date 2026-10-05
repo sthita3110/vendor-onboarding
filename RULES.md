@@ -190,6 +190,21 @@ on the latest run was blocked or errored (it never ran — e.g. SYS-01, or a DOC
 the vendor still owes items (an incomplete application). **Replay is blocked** once a reviewer has acted on the latest run:
 it would override a human decision; new information comes in by Resubmit or Reapply.
 
+## 4d. Vendor messages
+
+| Outcome (system or reviewer) | Message kind | Checklist | Never included |
+|---|---|---|---|
+| Approved | approved | — | — |
+| Awaiting vendor / reviewer Request info | action_needed | decision's vendor actions (+ the reviewer's message, verbatim) | internal reason |
+| Internal review | under_review | vendor-fixable items only, if any | why it's in review |
+| Rejected | rejected | — | reason, list names |
+
+Subject, opening and closing may be AI-drafted from vendor-safe facts only (vendor company, contact, reference, item
+count); the checklist is rendered by code. AI wording is rejected for internal vocabulary (debar, fraud, penny, risk,
+mismatch, …), rule IDs, or this case's private values (bank-reported holder name, other entities' names), and the
+fixed template is used — also on any AI failure. A system decision with the same outcome and items as the last
+message sends nothing (a replay doesn't re-email the vendor). Every message is audited (`message.sent`).
+
 ## 5. Golden cases
 
 All sample values are fictitious. PANs follow real structure (4th char = holder type, 5th char = first letter of the entity name). GSTIN check digits are computed by `backend/scripts/generate_data.py`; values shown as `…` are filled by the generator. Generated packets live in `backend/data/samples/`; tests in `backend/tests/test_golden.py`. Each case asserts: final status, sub-state, and the **exact set** of failing rule IDs.

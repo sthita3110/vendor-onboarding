@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { ClipboardCheck, LayoutDashboard, Plus } from 'lucide-react'
+import { ClipboardCheck, LayoutDashboard, Mail, Plus } from 'lucide-react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { getMetrics } from '../api'
 import { cx } from '../lib/style'
@@ -38,6 +38,7 @@ export function Layout() {
           <nav className="flex items-center gap-1">
             <NavItem to="/" icon={<LayoutDashboard className="size-4" />} label="Dashboard" />
             <NavItem to="/review" icon={<ClipboardCheck className="size-4" />} label="Review queue" badge={inReview} />
+            <NavItem to="/outbox" icon={<Mail className="size-4" />} label="Outbox" />
             <NavItem to="/new" icon={<Plus className="size-4" />} label="New vendor" />
           </nav>
         </div>

@@ -12,12 +12,13 @@ import {
 } from '../api'
 import { AuditTimeline } from '../components/AuditTimeline'
 import { Evidence } from '../components/Evidence'
+import { MessageCard } from '../components/MessageCard'
 import { ReviewPanel } from '../components/ReviewPanel'
 import { Button, Card, ErrorNote, ReasonChips, Spinner, StatusBadge, Tag } from '../components/ui'
 import { dateTime, relativeTime } from '../lib/format'
 import { cx } from '../lib/style'
 
-type TabKey = 'checks' | 'documents' | 'details' | 'audit'
+type TabKey = 'checks' | 'documents' | 'details' | 'messages' | 'audit'
 
 const OUTCOME_LABEL: Record<string, { text: string; tone: string }> = {
   VENDOR_ACTION: { text: 'Vendor to fix', tone: 'bg-amber-50 text-amber-800 ring-amber-200' },
@@ -227,7 +228,9 @@ export function CaseView() {
 
   const TABS: { key: TabKey; label: string }[] = [
     { key: 'checks', label: 'What we checked' }, { key: 'documents', label: 'Documents' },
-    { key: 'details', label: 'Submitted details' }, { key: 'audit', label: 'Audit trail' },
+    { key: 'details', label: 'Submitted details' },
+    { key: 'messages', label: `Vendor messages${c.messages.length ? ` (${c.messages.length})` : ''}` },
+    { key: 'audit', label: 'Audit trail' },
   ]
 
   return (
@@ -320,6 +323,12 @@ export function CaseView() {
           {tab === 'checks' && <ChecksTab c={c} />}
           {tab === 'documents' && <DocumentsTab c={c} />}
           {tab === 'details' && <DetailsTab c={c} />}
+          {tab === 'messages' && (
+            <div className="space-y-4">
+              {c.messages.length === 0 ? <Card className="p-8 text-center text-sm text-slate-500">No messages sent yet.</Card>
+                : c.messages.map((m) => <MessageCard key={m.id} m={m} />)}
+            </div>
+          )}
           {tab === 'audit' && (
             <Card className="p-5">
               {audit.isLoading ? <Spinner /> : audit.error ? <ErrorNote error={audit.error} /> : <AuditTimeline events={audit.data ?? []} />}
