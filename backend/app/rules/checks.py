@@ -641,6 +641,21 @@ def stage_risk(s: RunState) -> None:
         else:
             s.passed("DUP-02", "Bank account not used by another vendor")
 
+    # PRIOR-01: a reapplication after rejection always gets a person's sign-off (never auto-approved).
+    # Hard rules still run as normal: a still-debarred entity is rejected again by RISK-01.
+    prior = s.case.prior_rejections
+    if prior:
+        latest = prior[-1]
+        reasons = ", ".join(RULES[r].issue for r in latest.failing_rules if r in RULES) or "rejected"
+        s.failed(
+            "PRIOR-01", f"Earlier application {latest.reference} was rejected",
+            evidence={"prior_rejections": [p.model_dump() for p in prior]},
+            detail=(f"{latest.reference} was rejected{f' on {latest.rejected_at[:10]}' if latest.rejected_at else ''} "
+                    f"({reasons}). A reapplication is always reviewed by a person before it can be approved."),
+        )
+    else:
+        s.passed("PRIOR-01", "No earlier application from this entity was rejected")
+
 
 # ---------- stage registry ----------
 

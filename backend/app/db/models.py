@@ -37,6 +37,8 @@ class Case(Base):
     failing_rules: Mapped[list[Any]] = mapped_column(default=list)
     source: Mapped[str] = mapped_column(String(20), default="form")  # form | seed
     sample_id: Mapped[str | None] = mapped_column(String(10))
+    # Reapplication: the rejected case this new application follows. The rejected case is never reopened.
+    previous_case_id: Mapped[int | None] = mapped_column(ForeignKey("cases.id"), index=True)
     created_at: Mapped[datetime] = mapped_column(default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(default=utcnow, onupdate=utcnow)
     decided_at: Mapped[datetime | None]

@@ -112,6 +112,7 @@ GST state codes used in samples: `07` Delhi · `27` Maharashtra · `29` Karnatak
 | **RISK-02** | risk | Normalized name matches debarred list, no PAN match | REVIEW | Neutral |
 | **DUP-01** | risk | PAN or GSTIN already in vendor master | REVIEW | Neutral |
 | **DUP-02** | risk | Bank account (number + IFSC) already in vendor master under a different vendor | REVIEW | Neutral |
+| **PRIOR-01** | risk | The legal entity has an earlier **rejected** application (any case matched by PAN/GSTIN) | REVIEW | Neutral — internal history isn't disclosed |
 | **SYS-01** | any | A required check errored (LLM timeout, adapter failure) | REVIEW | Neutral |
 
 ### Who owns a "couldn't read it" problem
@@ -146,7 +147,7 @@ Doc-side IDs are not format-validated separately: a malformed GSTIN/PAN on a doc
 
 ### Required checks for approval
 
-COMP-01, COMP-02, FILE-01, DOC-01, DOC-02, DOC-03, TAX-01, TAX-02, TAX-03, TAX-04, TAX-05, TAX-06, ID-01, BANK-01, BANK-02, BANK-03, BANK-04, RISK-01, RISK-02, DUP-01, DUP-02.
+COMP-01, COMP-02, FILE-01, DOC-01, DOC-02, DOC-03, PRIOR-01, TAX-01, TAX-02, TAX-03, TAX-04, TAX-05, TAX-06, ID-01, BANK-01, BANK-02, BANK-03, BANK-04, RISK-01, RISK-02, DUP-01, DUP-02.
 
 Approved ⇔ every required check has status `pass`.
 
@@ -163,11 +164,18 @@ with the matching case(s), and the attempt is recorded on each matching case's a
 | Existing case | Offered |
 |---|---|
 | Pending, no run in progress | Open · Resubmit (new version, carrying over what was entered) · Replay (new run) |
-| Approved / Rejected (final) | Open · Replay |
+| Approved (a live vendor) | Open · Replay |
+| Rejected, latest in its chain, entity has no open case | Open · **Reapply** (new linked case) · Replay |
+| Rejected but already followed by a reapplication | Open · Replay |
 | Run in progress | Open |
 
-There is deliberately no "create anyway": reprocessing the same documents is a Replay, correcting a submission
-is a Resubmit. Without a PAN or GSTIN there is nothing to match on; the case is created and COMP-01 asks for them.
+Three distinct actions, never a duplicate case:
+
+- **Replay** = rerun the same data → new run, same case, same version.
+- **Resubmit** = correct the same application → new version, same case (pending cases only).
+- **Reapply** = a genuinely new application after rejection → new case linked to the rejected one (`previous_case_id`). The rejected case stays final and unchanged. The new case always fails PRIOR-01 → internal review, so it can't be auto-approved; hard rules still apply (a still-debarred PAN is rejected again by RISK-01, which outranks review). The reapplication must identify the same entity (PAN/GSTIN), otherwise it's a new vendor (422).
+
+There is deliberately no "create anyway". Without a PAN or GSTIN there is nothing to match on; the case is created and COMP-01 asks for them.
 
 ## 5. Golden cases
 

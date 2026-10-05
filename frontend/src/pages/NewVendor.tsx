@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { ExternalLink, PlayCircle, Upload, Users } from 'lucide-react'
+import { ExternalLink, FilePlus2, PlayCircle, Upload, Users } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { asDuplicate, createCase, replayCase, type DuplicateCase, type Slot, type SubmissionForm } from '../api'
@@ -25,9 +25,10 @@ function DuplicatePanel({ dup, entered }: { dup: DuplicateCase; entered: Entered
         <div className="min-w-0 flex-1">
           <h2 className="text-sm font-semibold text-sky-950">This vendor already has an onboarding case</h2>
           <p className="mt-1 text-sm text-sky-900">
-            Nothing was created. To avoid duplicate onboarding work, continue on the existing case:
-            <strong className="font-semibold"> resubmit</strong> to correct it with what you entered here, or
-            <strong className="font-semibold"> replay</strong> to reprocess its current documents.
+            Nothing was created. To avoid duplicate onboarding work, continue from the existing case:
+            <strong className="font-semibold"> resubmit</strong> corrects a pending application,
+            <strong className="font-semibold"> replay</strong> reprocesses its current documents, and
+            <strong className="font-semibold"> reapply</strong> starts a new application after a rejection.
           </p>
           <ul className="mt-4 space-y-3">
             {dup.matches.map((c) => (
@@ -48,16 +49,27 @@ function DuplicatePanel({ dup, entered }: { dup: DuplicateCase; entered: Entered
                       <Upload className="size-4" /> Resubmit with these details
                     </Button>
                   )}
+                  {c.can_reapply && (
+                    <Button onClick={() => navigate(`/cases/${c.id}/reapply`, { state: entered })}>
+                      <FilePlus2 className="size-4" /> Reapply as a new application
+                    </Button>
+                  )}
                   {c.can_replay && (
                     <Button variant="secondary" onClick={() => replay.mutate(c.id)} disabled={replay.isPending}>
                       <PlayCircle className="size-4" /> {replay.isPending ? 'Starting…' : 'Replay existing case'}
                     </Button>
                   )}
                 </div>
-                {!c.can_resubmit && (c.display_status === 'APPROVED' || c.display_status === 'REJECTED') && (
+                {c.display_status === 'APPROVED' && (
+                  <p className="mt-2 text-xs text-slate-500">This vendor is already approved, so there's nothing to resubmit.</p>
+                )}
+                {c.can_reapply && (
                   <p className="mt-2 text-xs text-slate-500">
-                    This case is {c.display_status === 'APPROVED' ? 'approved' : 'rejected'} and final, so it can't be resubmitted.
+                    The rejected case stays final. Reapplying creates a new case linked to it, and a person always reviews it.
                   </p>
+                )}
+                {c.display_status === 'REJECTED' && !c.can_reapply && (
+                  <p className="mt-2 text-xs text-slate-500">Rejected and final — a newer application for this vendor is already open.</p>
                 )}
               </li>
             ))}

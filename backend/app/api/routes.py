@@ -18,10 +18,13 @@ from app.documents.inspect import MAX_BYTES
 from app.domain.models import CaseInput, Evaluation, Submission
 from app.llm.extract import UploadedFile
 from app.pipeline.runner import (
+    DifferentEntityError,
     DuplicateCaseError,
     PipelineDeps,
+    ReapplyNotAllowedError,
     RunInProgressError,
     default_deps,
+    reapply_case,
     replay_case,
     resubmit_case,
     submit_case,
@@ -127,15 +130,41 @@ def create_case_endpoint(
         # Nothing was created. Point the user at the existing case and what they can do with it.
         with session_scope() as s:
             matches = [{**ser.case_row_json(c), **{k: v for k, v in ser.case_detail_json(c).items()
-                                                   if k in ("can_resubmit", "can_replay", "selected_version")}}
+                                                   if k in ("can_resubmit", "can_replay", "can_reapply",
+                                                            "selected_version")}}
                        for c in (s.get(m.Case, cid) for cid in e.case_ids)]
         raise HTTPException(409, {
             "code": "duplicate_case",
-            "message": "This legal entity already has an onboarding case. Continue on it instead of starting a new one: "
-                       "replay it to reprocess the same documents, or resubmit to correct it.",
+            "message": "This legal entity already has an onboarding case. Replay reprocesses the same documents, "
+                       "Resubmit corrects a pending application, and Reapply starts a new application after a rejection.",
             "matches": matches,
         }) from None
     return {"case_id": case_id, "reference": f"VO-{case_id:04d}", "run_id": run_id}
+
+
+@router.post("/cases/{case_id}/reapply", status_code=201)
+def reapply_endpoint(
+    case_id: int,
+    submission: str = Form(...),
+    gst_certificate: UploadFile | None = File(None),
+    pan_card: UploadFile | None = File(None),
+    bank_proof: UploadFile | None = File(None),
+    submitted_by: str = Form("vendor"),
+    deps: PipelineDeps = Depends(get_pipeline_deps),
+) -> dict:
+    """A genuinely new application after rejection: a new case linked to the rejected one (which stays final).
+    Always routed to internal review by PRIOR-01; hard rules such as RISK-01 still apply."""
+    form = _parse_submission(submission)
+    uploads = _uploads({"gst_certificate": gst_certificate, "pan_card": pan_card, "bank_proof": bank_proof})
+    try:
+        new_id, run_id = reapply_case(case_id, form, uploads, submitted_by=submitted_by, deps=deps)
+    except LookupError:
+        raise HTTPException(404, f"Case {case_id} not found") from None
+    except ReapplyNotAllowedError as e:
+        raise HTTPException(409, str(e)) from None
+    except DifferentEntityError as e:
+        raise HTTPException(422, str(e)) from None
+    return {"case_id": new_id, "reference": f"VO-{new_id:04d}", "run_id": run_id, "previous_case_id": case_id}
 
 
 @router.post("/cases/{case_id}/resubmit", status_code=201)

@@ -11,7 +11,7 @@ from __future__ import annotations
 from collections.abc import Iterator
 from contextlib import contextmanager
 
-from sqlalchemy import Engine, create_engine, event
+from sqlalchemy import Engine, create_engine, event, inspect, text
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.config import get_settings
@@ -40,8 +40,28 @@ def init_db(url: str | None = None) -> Engine:
     if url.startswith("sqlite"):
         event.listen(_engine, "connect", _sqlite_pragmas)
     models.Base.metadata.create_all(_engine)
+    _add_missing_columns(_engine, models.Base.metadata)
     _SessionLocal = sessionmaker(_engine, expire_on_commit=False)
     return _engine
+
+
+def _add_missing_columns(engine: Engine, metadata) -> list[str]:
+    """Forward-only upgrade for an existing database: add new *nullable* columns that create_all can't add to
+    existing tables. Anything more (renames, new constraints) is out of scope — that is what Alembic is for in
+    production. Returns the columns added."""
+    insp = inspect(engine)
+    added = []
+    with engine.begin() as conn:
+        for table in metadata.sorted_tables:
+            if not insp.has_table(table.name):
+                continue
+            existing = {c["name"] for c in insp.get_columns(table.name)}
+            for col in table.columns:
+                if col.name not in existing and col.nullable:
+                    conn.execute(text(f'ALTER TABLE "{table.name}" ADD COLUMN "{col.name}" '
+                                      f'{col.type.compile(engine.dialect)}'))
+                    added.append(f"{table.name}.{col.name}")
+    return added
 
 
 def get_engine() -> Engine:

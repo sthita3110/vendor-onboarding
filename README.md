@@ -67,6 +67,7 @@ Interactive docs: `/docs`.
 | GET | `/api/cases/{id}?version=` | Case detail: versions, form, documents, grouped checks with evidence, extractions |
 | GET | `/api/cases/{id}/documents/{doc_id}` | Original uploaded file |
 | POST | `/api/cases/{id}/resubmit` | New version (changed files only; others carry over) → new run |
+| POST | `/api/cases/{id}/reapply` | New application after rejection: multipart form + files → new linked case → run (409 if not allowed, 422 if a different entity) |
 | POST | `/api/cases/{id}/replay?use_cache=false` | Execute the full pipeline again on the latest submission (fresh model calls by default) → new run |
 | GET | `/api/review-queue` | Internal-review cases, oldest first |
 | GET | `/api/cases/{id}/audit` | Audit timeline |
@@ -76,7 +77,7 @@ Interactive docs: `/docs`.
 
 ## Three ways a case gets results
 
-Duplicate check: a new upload for a legal entity that already has a case (same PAN or GSTIN) is blocked with a link to that case (409 `duplicate_case`); continue there with Replay (new run) or Resubmit (new version).
+Duplicate check: a new upload for a legal entity that already has a case (same PAN or GSTIN) is blocked with a link to that case (409 `duplicate_case`). Continue with **Replay** (rerun the same data → new run), **Resubmit** (correct a pending application → new version) or, after a rejection, **Reapply** (a genuinely new application → new case linked to the rejected one, always reviewed by a person via PRIOR-01).
 
 | Path | When | Pipeline executed? | OpenAI called? | Label |
 |---|---|---|---|---|

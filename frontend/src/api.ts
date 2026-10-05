@@ -21,6 +21,7 @@ export interface CaseRow {
   source: 'form' | 'seed'
   source_label: string
   sample_id: string | null
+  previous_case_id: number | null
   created_at: string
   decided_at: string | null
   updated_at: string
@@ -65,7 +66,7 @@ export interface Run {
   reference: string
   vendor_name: string | null
   version: number
-  trigger: 'submission' | 'resubmission' | 'replay' | 'seed'
+  trigger: 'submission' | 'resubmission' | 'replay' | 'reapplication' | 'seed'
   trigger_label: string
   executed: boolean
   status: 'queued' | 'running' | 'completed' | 'failed' | 'interrupted'
@@ -277,10 +278,22 @@ export interface DocumentView {
   url: string
 }
 
+export interface CaseLink {
+  id: number
+  reference: string
+  vendor_name: string | null
+  display_status: DisplayStatus
+  reasons: Reason[]
+  decided_at: string | null
+}
+
 export interface CaseDetail extends CaseRow {
   pan: string | null
   can_resubmit: boolean
   can_replay: boolean
+  can_reapply: boolean
+  previous_case: CaseLink | null
+  superseded_by: CaseLink[]
   selected_version: number
   versions_detail: {
     version: number
@@ -347,6 +360,7 @@ export async function openDocument(url: string): Promise<void> {
 export interface DuplicateMatch extends CaseRow {
   can_resubmit: boolean
   can_replay: boolean
+  can_reapply: boolean
   selected_version: number
 }
 
@@ -360,4 +374,12 @@ export function asDuplicate(error: unknown): DuplicateCase | null {
   if (error instanceof ApiError && error.status === 409 && error.detail && typeof error.detail === 'object'
     && (error.detail as { code?: string }).code === 'duplicate_case') return error.detail as DuplicateCase
   return null
+}
+
+/** A genuinely new application after rejection: a new case linked to the rejected one. */
+export function reapplyCase(previousCaseId: number, form: SubmissionForm, files: Partial<Record<Slot, File>>) {
+  const body = new FormData()
+  body.set('submission', JSON.stringify(toPayload(form)))
+  for (const [slot, file] of Object.entries(files)) if (file) body.set(slot, file)
+  return api<Created & { previous_case_id: number }>(`/api/cases/${previousCaseId}/reapply`, { method: 'POST', body })
 }

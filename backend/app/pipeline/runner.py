@@ -29,8 +29,11 @@ from app.db.repository import (
     create_case,
     create_run,
     find_cases_for_entity,
+    is_open,
     load_uploads,
+    prior_rejections,
     save_evaluation,
+    superseded_by,
     set_case_status,
 )
 from app.domain.models import CaseInput, CheckResult, Decision, DocumentInput, Evaluation
@@ -158,6 +161,46 @@ def resubmit_case(case_id: int, form: SubmissionForm, uploads: list[UploadedFile
 
 class RunInProgressError(RuntimeError):
     pass
+
+
+class ReapplyNotAllowedError(RuntimeError):
+    """Reapply is only for a rejected case whose entity has no open case."""
+
+
+class DifferentEntityError(ValueError):
+    """The reapplication's PAN/GSTIN don't identify the rejected case's entity: that's a new vendor, not a reapply."""
+
+
+def reapply_case(previous_case_id: int, form: SubmissionForm, uploads: list[UploadedFile], *,
+                 submitted_by: str = "vendor", background: bool = True,
+                 deps: PipelineDeps | None = None) -> tuple[int, int]:
+    """A genuinely new application after rejection: a NEW case linked to the rejected one, which stays final.
+    The run sees the rejection history, so PRIOR-01 sends it to internal review (never auto-approved)."""
+    with session_scope() as s:
+        prev = s.get(m.Case, previous_case_id)
+        if prev is None:
+            raise LookupError(f"Case {previous_case_id} not found")
+        if prev.status != "REJECTED":
+            raise ReapplyNotAllowedError(f"{prev.reference} is not rejected; resubmit or replay it instead")
+        later = superseded_by(s, prev)
+        if later:
+            raise ReapplyNotAllowedError(
+                f"{prev.reference} was already followed by {later[-1].reference}; continue from there instead")
+        entity_cases = find_cases_for_entity(s, form)
+        if prev.id not in {c.id for c in entity_cases}:
+            raise DifferentEntityError(
+                f"This PAN/GSTIN doesn't match {prev.reference}; submit it as a new vendor instead")
+        open_cases = [c for c in entity_cases if is_open(c)]
+        if open_cases:
+            raise ReapplyNotAllowedError(
+                f"{open_cases[0].reference} is already open for this entity; continue there instead")
+        case = create_case(s, form, uploads, submitted_by=submitted_by, previous_case_id=prev.id)
+        run = create_run(s, case, case.submissions[0], trigger="reapplication")
+        _create_stage_rows(s, run)
+        audit(s, prev.id, "case.reapplied", actor=submitted_by, new_case_id=case.id, new_reference=case.reference)
+        case_id, run_id = case.id, run.id
+    start_run(run_id, background=background, deps=deps)
+    return case_id, run_id
 
 
 def replay_case(case_id: int, *, requested_by: str = "operations", use_cache: bool = False,
@@ -296,6 +339,8 @@ def run_pipeline(run_id: int, deps: PipelineDeps | None = None) -> None:
             form = SubmissionForm.model_validate(run.submission.payload)
             uploads = load_uploads(run.submission)
             reference = run.case.reference
+            # Case history for PRIOR-01: earlier rejected applications by the same entity (not this case).
+            prior = prior_rejections(s, form, exclude_case_id=case_id)
             audit(s, case_id, "run.started", run_id=run_id)
 
         # 0. intake
@@ -307,7 +352,7 @@ def run_pipeline(run_id: int, deps: PipelineDeps | None = None) -> None:
         # Rule stages share one RunState. Completeness only needs to know which slots were uploaded,
         # so it runs on placeholders; real extracted documents replace them after reading.
         placeholders = {u.slot: DocumentInput(slot=u.slot, filename=u.filename) for u in uploads}  # type: ignore[arg-type]
-        state = RunState(case=CaseInput(submission=form, documents=placeholders), ctx=deps.ctx)
+        state = RunState(case=CaseInput(submission=form, documents=placeholders, prior_rejections=prior), ctx=deps.ctx)
         extractions: dict[str, Extraction] = {}
 
         for key, _label in STAGES[1:8]:
@@ -323,7 +368,8 @@ def run_pipeline(run_id: int, deps: PipelineDeps | None = None) -> None:
                         for u in uploads}
                 else:
                     extractions = read_documents(reader, uploads, deps.cache)
-                state.case = CaseInput(submission=form, documents={s_: ex.document for s_, ex in extractions.items()})
+                state.case = CaseInput(submission=form, documents={s_: ex.document for s_, ex in extractions.items()},
+                                       prior_rejections=prior)
                 outcome, summary, details = _summarize_reading(extractions, time.monotonic() - start)
             else:
                 before = len(state.results)

@@ -9,6 +9,7 @@ import { CaseView } from './pages/CaseView'
 import { Dashboard } from './pages/Dashboard'
 import { NewVendor } from './pages/NewVendor'
 import { NotFound } from './pages/NotFound'
+import { Reapply } from './pages/Reapply'
 import { Resubmit } from './pages/Resubmit'
 import { ReviewQueue } from './pages/ReviewQueue'
 import { RunView } from './pages/RunView'
@@ -29,6 +30,7 @@ createRoot(document.getElementById('root')!).render(
               <Route path="runs/:id" element={<RunView />} />
               <Route path="cases/:id" element={<CaseView />} />
               <Route path="cases/:id/resubmit" element={<Resubmit />} />
+              <Route path="cases/:id/reapply" element={<Reapply />} />
               <Route path="review" element={<ReviewQueue />} />
               <Route path="*" element={<NotFound />} />
             </Route>

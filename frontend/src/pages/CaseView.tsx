@@ -1,7 +1,8 @@
 // Case page: the decision, the evidence behind it, what the AI read, and the full history.
 import { useMutation, useQuery } from '@tanstack/react-query'
 import {
-  AlertTriangle, ArrowLeft, CheckCircle2, ChevronDown, ExternalLink, FileText, MinusCircle, PlayCircle, Upload, XCircle,
+  AlertTriangle, ArrowLeft, CheckCircle2, ChevronDown, ExternalLink, FilePlus2, FileText, History, MinusCircle,
+  PlayCircle, Upload, XCircle,
 } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
@@ -263,9 +264,40 @@ export function CaseView() {
               <Upload className="size-4" /> Resubmit for vendor
             </Button>
           )}
+          {c.can_reapply && (
+            <Button onClick={() => navigate(`/cases/${c.id}/reapply`)} title="Start a new application after this rejection">
+              <FilePlus2 className="size-4" /> Reapply
+            </Button>
+          )}
         </div>
       </div>
       {replay.error && <div className="mb-4"><ErrorNote error={replay.error} /></div>}
+      {c.previous_case && (
+        <div className="mb-4 flex items-start gap-3 rounded-lg bg-violet-50 px-4 py-3 text-sm text-violet-950 ring-1 ring-violet-200">
+          <History className="mt-0.5 size-4 shrink-0 text-violet-700" />
+          <p>
+            <strong className="font-semibold">Reapplication.</strong> This vendor's earlier application{' '}
+            <Link to={`/cases/${c.previous_case.id}`} className="font-medium underline">{c.previous_case.reference}</Link>{' '}
+            was rejected{c.previous_case.decided_at && ` on ${dateTime(c.previous_case.decided_at)}`}
+            {c.previous_case.reasons.length > 0 && ` (${c.previous_case.reasons.map((r) => r.issue).join(', ')})`}.
+            A person must review this application before it can be approved.
+          </p>
+        </div>
+      )}
+      {c.superseded_by.length > 0 && (
+        <div className="mb-4 flex items-start gap-3 rounded-lg bg-slate-100 px-4 py-3 text-sm text-slate-700">
+          <History className="mt-0.5 size-4 shrink-0 text-slate-500" />
+          <p>
+            A new application was submitted after this rejection:{' '}
+            {c.superseded_by.map((x, i) => (
+              <span key={x.id}>{i > 0 && ', '}
+                <Link to={`/cases/${x.id}`} className="font-medium underline">{x.reference}</Link>
+              </span>
+            ))}
+            . This case stays rejected and unchanged.
+          </p>
+        </div>
+      )}
       {viewingOld && (
         <div className="mb-4 rounded-lg bg-sky-50 px-4 py-2.5 text-sm text-sky-900 ring-1 ring-sky-200">
           Viewing version {c.selected_version}. The current version is {latestVersion}.

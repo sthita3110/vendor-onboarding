@@ -6,7 +6,10 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
+from sqlalchemy.orm import object_session
+
 from app.db import models as m
+from app.db.repository import can_reapply, superseded_by
 from app.rules.catalog import RULE_ORDER, RULES
 
 GROUP_ORDER = ["Documents", "Tax", "Identity", "Bank", "Risk", "System"]
@@ -26,7 +29,14 @@ def reasons(rule_ids: list[str]) -> list[dict[str, str]]:
 
 
 TRIGGER_LABEL = {"submission": "Submitted", "resubmission": "Resubmitted", "replay": "Replay",
-                 "seed": "Seeded sample (not executed)"}
+                 "reapplication": "Reapplication", "seed": "Seeded sample (not executed)"}
+
+
+def case_link(c: m.Case) -> dict[str, Any]:
+    """A reference to a related case (reapplication links), with enough to render a banner."""
+    return {"id": c.id, "reference": c.reference, "vendor_name": c.vendor_name,
+            "display_status": display_status(c.status, c.sub_state), "reasons": reasons(c.failing_rules),
+            "decided_at": iso(c.decided_at)}
 
 
 def source_label(c: m.Case) -> str:
@@ -114,6 +124,7 @@ def case_row_json(c: m.Case) -> dict[str, Any]:
         "reasons": reasons(c.failing_rules), "versions": len(c.submissions),
         "vendor_actions": len(latest.decision.vendor_actions) if latest and latest.decision else 0,
         "source": c.source, "source_label": source_label(c), "sample_id": c.sample_id,
+        "previous_case_id": c.previous_case_id,
         "created_at": iso(c.created_at), "decided_at": iso(c.decided_at), "updated_at": iso(c.updated_at),
         "latest_run": {"id": latest.id, "status": latest.status} if latest else None,
     }
@@ -127,11 +138,17 @@ def case_detail_json(c: m.Case, version: int | None = None) -> dict[str, Any]:
     runs_by_sub = {r.submission_id: r for r in c.runs}  # latest run per submission wins
     run = runs_by_sub.get(selected.id)
     latest_run = c.runs[-1] if c.runs else None
+    session = object_session(c)
+    previous = session.get(m.Case, c.previous_case_id) if session and c.previous_case_id else None
+    later = superseded_by(session, c) if session else []
     return {
         **case_row_json(c),
         "pan": c.pan,
         "can_resubmit": c.status == "PENDING" and not (latest_run and latest_run.status in ("queued", "running")),
         "can_replay": not (latest_run and latest_run.status in ("queued", "running")),
+        "can_reapply": bool(session) and can_reapply(session, c),
+        "previous_case": case_link(previous) if previous else None,
+        "superseded_by": [case_link(x) for x in later],
         "runs_detail": [{"id": r.id, "version": r.submission.version, "trigger": r.trigger,
                          "trigger_label": TRIGGER_LABEL.get(r.trigger, r.trigger), "status": r.status,
                          "created_at": iso(r.created_at), "decision": decision_json(r.decision)} for r in c.runs],

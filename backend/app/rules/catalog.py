@@ -47,6 +47,7 @@ _RULES = [
     Rule("RISK-02", "risk", "Risk", "No name match on the debarred list", "Possible debarred match", R),
     Rule("DUP-01", "risk", "Risk", "Not already a registered vendor", "Existing vendor", R),
     Rule("DUP-02", "risk", "Risk", "Bank account not used by another vendor", "Shared bank account", R),
+    Rule("PRIOR-01", "risk", "Risk", "No earlier application was rejected", "Previously rejected", R),
     Rule("SYS-01", "any", "System", "All checks completed", "System check failed", R, required=False),
 ]
 

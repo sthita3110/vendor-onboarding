@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from app.db import models as m
 from app.db.audit import audit
 from app.db.storage import read_file, store_file
-from app.domain.models import Evaluation
+from app.domain.models import Evaluation, PriorRejection
 from app.domain.models import Submission as SubmissionForm
 from app.llm.extract import Extraction, UploadedFile
 from app.rules.validators import clean_id
@@ -47,10 +47,49 @@ def find_cases_for_entity(session: Session, form: SubmissionForm) -> list[m.Case
     return list(session.scalars(select(m.Case).where(or_(*conditions)).order_by(m.Case.id)))
 
 
+def is_open(case: m.Case) -> bool:
+    """Open = not rejected. Pending and in-progress cases are open; an approved case is a live vendor, so a new
+    application for it is still a duplicate. Only rejection closes an entity's case for a new application."""
+    return case.status != "REJECTED"
+
+
+def entity_case_keys(case: m.Case) -> SubmissionForm:
+    """The entity identifiers of an existing case, in the shape find_cases_for_entity takes."""
+    return SubmissionForm(pan=case.pan, gstin=case.gstin)
+
+
+def superseded_by(session: Session, case: m.Case) -> list[m.Case]:
+    """Reapplications made after this (rejected) case."""
+    return list(session.scalars(select(m.Case).where(m.Case.previous_case_id == case.id).order_by(m.Case.id)))
+
+
+def can_reapply(session: Session, case: m.Case) -> bool:
+    """A genuinely new application is possible only after rejection, only from the latest application in the
+    chain (not one already superseded), and only while the entity has no open case."""
+    return (case.status == "REJECTED" and not superseded_by(session, case)
+            and not any(is_open(c) for c in find_cases_for_entity(session, entity_case_keys(case))))
+
+
+def prior_rejections(session: Session, form: SubmissionForm, exclude_case_id: int | None = None) -> list[PriorRejection]:
+    """Rejected cases for the same legal entity (oldest first), excluding the case being evaluated."""
+    out = []
+    for c in find_cases_for_entity(session, form):
+        if c.id == exclude_case_id or c.status != "REJECTED":
+            continue
+        decision = c.runs[-1].decision if c.runs and c.runs[-1].decision else None
+        out.append(PriorRejection(
+            case_id=c.id, reference=c.reference,
+            rejected_at=c.decided_at.isoformat(timespec="seconds") + "Z" if c.decided_at else None,
+            failing_rules=list(c.failing_rules or []), summary=decision.summary if decision else None,
+        ))
+    return out
+
+
 def create_case(session: Session, form: SubmissionForm, uploads: list[UploadedFile], *,
-                submitted_by: str = "vendor", source: str = "form", sample_id: str | None = None) -> m.Case:
+                submitted_by: str = "vendor", source: str = "form", sample_id: str | None = None,
+                previous_case_id: int | None = None) -> m.Case:
     case = m.Case(vendor_name=form.legal_name, gstin=clean_id(form.gstin) or None, pan=clean_id(form.pan) or None,
-                  source=source, sample_id=sample_id)
+                  source=source, sample_id=sample_id, previous_case_id=previous_case_id)
     session.add(case)
     session.flush()  # assigns case.id (needed for the file store path)
     sub = m.Submission(case=case, version=1, payload=form.model_dump(mode="json"), submitted_by=submitted_by)
@@ -58,7 +97,7 @@ def create_case(session: Session, form: SubmissionForm, uploads: list[UploadedFi
     _store_documents(session, case, sub, uploads)
     session.flush()
     audit(session, case.id, "case.created", actor=submitted_by, reference=case.reference, source=source,
-          sample_id=sample_id)
+          sample_id=sample_id, reapplication_of=previous_case_id)
     audit(session, case.id, "submission.received", actor=submitted_by, version=1, documents=_doc_summary(sub))
     return case
 

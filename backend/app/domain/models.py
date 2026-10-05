@@ -74,9 +74,21 @@ class DocumentInput(BaseModel):
         return str(f.value).strip()
 
 
+class PriorRejection(BaseModel):
+    """An earlier case for the same legal entity that ended in rejection (drives PRIOR-01)."""
+
+    case_id: int
+    reference: str
+    rejected_at: str | None = None
+    failing_rules: list[str] = Field(default_factory=list)
+    summary: str | None = None
+
+
 class CaseInput(BaseModel):
     submission: Submission
     documents: dict[DocSlot, DocumentInput] = Field(default_factory=dict)
+    # Case history supplied by the pipeline from the database; empty for a first application.
+    prior_rejections: list[PriorRejection] = Field(default_factory=list)
 
 
 # ---------- Check results and decision ----------
