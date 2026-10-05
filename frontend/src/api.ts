@@ -218,3 +218,120 @@ export function createCase(form: SubmissionForm, files: Partial<Record<Slot, Fil
 
 export const replayCase = (caseId: number) =>
   api<{ case_id: number; run_id: number }>(`/api/cases/${caseId}/replay`, { method: 'POST' })
+
+// ---------- case detail ----------
+
+export interface CheckResultView {
+  status: 'pass' | 'fail' | 'blocked' | 'error'
+  subject: string | null
+  title: string
+  detail: string | null
+  vendor_text: string | null
+  outcome_class: string | null
+  evidence: Record<string, unknown>
+  blocked_by: string | null
+  blocked_by_issue: string | null
+}
+
+export interface RuleView {
+  rule_id: string
+  name: string
+  issue: string
+  required: boolean
+  outcome_if_failed: 'VENDOR_ACTION' | 'REVIEW' | 'REJECT' | 'INFO'
+  status: 'pass' | 'fail' | 'blocked' | 'error'
+  results: CheckResultView[]
+}
+
+export interface ExtractedFieldView {
+  value: string | null
+  quote: string | null
+  page: number | null
+  grounded: 'text' | 'image' | 'unverified' | null
+}
+
+export interface ExtractionView {
+  slot: Slot
+  document_id: number | null
+  filename: string | null
+  classified_type: string | null
+  readable: boolean | null
+  file_problem: string | null
+  extraction_error: string | null
+  fields: Record<string, ExtractedFieldView>
+  meta: Record<string, unknown>
+}
+
+export interface DocumentView {
+  id: number
+  slot: Slot
+  filename: string
+  size: number
+  carried_over: boolean
+  url: string
+}
+
+export interface CaseDetail extends CaseRow {
+  pan: string | null
+  can_resubmit: boolean
+  can_replay: boolean
+  selected_version: number
+  versions_detail: {
+    version: number
+    submitted_at: string
+    submitted_by: string
+    run: { id: number; status: string; decision: Decision | null } | null
+  }[]
+  runs_detail: {
+    id: number
+    version: number
+    trigger: Run['trigger']
+    trigger_label: string
+    status: string
+    created_at: string
+    decision: Decision | null
+  }[]
+  submission: Record<string, unknown>
+  documents: DocumentView[]
+  run: Run | null
+  checks: { group: string; rules: RuleView[] }[]
+  extractions: Partial<Record<Slot, ExtractionView>>
+}
+
+export interface AuditEvent {
+  id: number
+  at: string
+  actor: string
+  event: string
+  run_id: number | null
+  data: Record<string, unknown>
+}
+
+export const getCase = (id: number, version?: number) =>
+  api<CaseDetail>(`/api/cases/${id}${version ? `?version=${version}` : ''}`)
+export const getAudit = (id: number) => api<AuditEvent[]>(`/api/cases/${id}/audit`)
+export const getReviewQueue = () => api<CaseRow[]>('/api/review-queue')
+
+export function resubmitCase(caseId: number, form: SubmissionForm, files: Partial<Record<Slot, File>>) {
+  const body = new FormData()
+  body.set('submission', JSON.stringify(toPayload(form)))
+  for (const [slot, file] of Object.entries(files)) if (file) body.set(slot, file)
+  return api<{ case_id: number; run_id: number; version: number }>(`/api/cases/${caseId}/resubmit`, { method: 'POST', body })
+}
+
+/** Open an uploaded document in a new tab. Fetched with the passcode header (never put in the URL),
+ *  then shown from a local blob URL. The tab is opened first so popup blockers allow it. */
+export async function openDocument(url: string): Promise<void> {
+  const tab = window.open('', '_blank')
+  const headers = new Headers()
+  const passcode = getPasscode()
+  if (passcode) headers.set('X-App-Passcode', passcode)
+  const res = await fetch(url, { headers })
+  if (!res.ok) {
+    tab?.close()
+    throw new ApiError(res.status, "Couldn't open the document")
+  }
+  const blobUrl = URL.createObjectURL(await res.blob())
+  if (tab) tab.location.href = blobUrl
+  else window.location.href = blobUrl
+}

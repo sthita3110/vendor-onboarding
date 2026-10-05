@@ -5,9 +5,12 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { Layout } from './components/Layout'
 import { PasscodeGate } from './components/PasscodeGate'
 import './index.css'
+import { CaseView } from './pages/CaseView'
 import { Dashboard } from './pages/Dashboard'
 import { NewVendor } from './pages/NewVendor'
-import { Placeholder } from './pages/Placeholder'
+import { NotFound } from './pages/NotFound'
+import { Resubmit } from './pages/Resubmit'
+import { ReviewQueue } from './pages/ReviewQueue'
 import { RunView } from './pages/RunView'
 
 const queryClient = new QueryClient({
@@ -24,9 +27,10 @@ createRoot(document.getElementById('root')!).render(
               <Route index element={<Dashboard />} />
               <Route path="new" element={<NewVendor />} />
               <Route path="runs/:id" element={<RunView />} />
-              <Route path="cases/:id" element={<Placeholder title="Case" step="4c" />} />
-              <Route path="review" element={<Placeholder title="Review queue" step="4c" />} />
-              <Route path="*" element={<Placeholder title="Page not found" step="—" />} />
+              <Route path="cases/:id" element={<CaseView />} />
+              <Route path="cases/:id/resubmit" element={<Resubmit />} />
+              <Route path="review" element={<ReviewQueue />} />
+              <Route path="*" element={<NotFound />} />
             </Route>
           </Routes>
         </BrowserRouter>
