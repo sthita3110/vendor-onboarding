@@ -67,6 +67,9 @@ function Section({ title, description, children }: { title: string; description:
 
 export interface VendorFormProps {
   initialForm?: SubmissionForm
+  initialFiles?: Partial<Record<Slot, File>>
+  /** Shown just above the submit bar (e.g. the duplicate-case panel). */
+  notice?: ReactNode
   /** Resubmission: documents of the current version, carried over unless replaced. */
   existingDocs?: DocumentView[]
   existingVersion?: number
@@ -76,10 +79,12 @@ export interface VendorFormProps {
   onSubmit: (form: SubmissionForm, files: Partial<Record<Slot, File>>, sampleId?: string) => void
 }
 
-export function VendorForm({ initialForm, existingDocs, existingVersion, submitLabel, submitting, error, onSubmit }: VendorFormProps) {
+export function VendorForm({
+  initialForm, initialFiles, notice, existingDocs, existingVersion, submitLabel, submitting, error, onSubmit,
+}: VendorFormProps) {
   const start = initialForm ?? EMPTY_FORM
   const [form, setForm] = useState<SubmissionForm>(start)
-  const [files, setFiles] = useState<Partial<Record<Slot, File>>>({})
+  const [files, setFiles] = useState<Partial<Record<Slot, File>>>(initialFiles ?? {})
   const [sampleId, setSampleId] = useState<string | undefined>()
   const [loadingSample, setLoadingSample] = useState(false)
   const [sampleError, setSampleError] = useState<unknown>(null)
@@ -232,6 +237,7 @@ export function VendorForm({ initialForm, existingDocs, existingVersion, submitL
         </Section>
 
         {error != null && <ErrorNote error={error} />}
+        {notice}
 
         <Card className="sticky bottom-4 flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-slate-500">

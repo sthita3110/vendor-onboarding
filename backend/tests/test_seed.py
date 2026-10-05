@@ -15,6 +15,7 @@ from app.pipeline import seed as seed_module
 from app.pipeline.runner import STAGES, PipelineDeps
 from app.pipeline.seed import SEED_IDS, SeedMismatchError, seed_demo_cases
 from app.reference.data import SAMPLES_DIR
+from app.rules.validators import gstin_check_char
 from tests.conftest import TruthReader, load_sample
 
 client = TestClient(app)
@@ -179,14 +180,28 @@ def test_seeded_e3_can_be_resubmitted_live_with_e3r(reader):
 # ---------- 3. new upload: real execution, never seeded ----------
 
 def test_new_upload_runs_pipeline_and_is_not_seeded(reader):
+    """A genuinely new entity: real execution, labelled "Uploaded", seeded cases untouched.
+    (Re-uploading a seeded sample is blocked as a duplicate — see test_duplicates.py.)"""
     seed_demo_cases()
     sample = load_sample("H1")
+    first14 = "29AAACN7777Q1Z"
+    new_entity = {**sample["case"]["submission"], "legal_name": "Nova Instruments Private Limited",
+                  "pan": "AAACN7777Q", "gstin": first14 + gstin_check_char(first14)}
     files = {slot: (d["filename"], (SAMPLES_DIR / "H1" / d["filename"]).read_bytes(), "application/pdf")
              for slot, d in sample["case"]["documents"].items()}
-    r = client.post("/api/cases", data={"submission": json.dumps(sample["case"]["submission"]), "sample_id": "H1"},
-                    files=files)
+    r = client.post("/api/cases", data={"submission": json.dumps(new_entity), "sample_id": "H1"}, files=files)
     assert r.status_code == 201 and reader.calls == 3
     c = client.get(f"/api/cases/{r.json()['case_id']}").json()
     assert c["source"] == "form" and c["source_label"] == "Uploaded · from sample H1"
     assert c["run"]["trigger"] == "submission" and c["run"]["executed"] is True
     assert len(client.get("/api/cases").json()) == 7  # a new case, seeded ones untouched
+
+
+def test_reuploading_a_seeded_sample_is_blocked(reader):
+    seed_demo_cases()
+    sample = load_sample("H1")
+    files = {slot: (d["filename"], (SAMPLES_DIR / "H1" / d["filename"]).read_bytes(), "application/pdf")
+             for slot, d in sample["case"]["documents"].items()}
+    r = client.post("/api/cases", data={"submission": json.dumps(sample["case"]["submission"])}, files=files)
+    assert r.status_code == 409 and reader.calls == 0
+    assert len(client.get("/api/cases").json()) == 6

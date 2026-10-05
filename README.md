@@ -76,6 +76,8 @@ Interactive docs: `/docs`.
 
 ## Three ways a case gets results
 
+Duplicate check: a new upload for a legal entity that already has a case (same PAN or GSTIN) is blocked with a link to that case (409 `duplicate_case`); continue there with Replay (new run) or Resubmit (new version).
+
 | Path | When | Pipeline executed? | OpenAI called? | Label |
 |---|---|---|---|---|
 | Seeded sample | Startup, only if the database is empty (`SEED_DEMO=on`) | No — rules applied to the sample's known data; must match its expected outcome | No | "Seeded sample", run type `seed` |

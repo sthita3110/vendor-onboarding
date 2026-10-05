@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.db import models as m
@@ -26,6 +27,24 @@ def _store_documents(session: Session, case: m.Case, sub: m.Submission, uploads:
 def _doc_summary(sub: m.Submission) -> list[dict[str, Any]]:
     return [{"slot": d.slot, "filename": d.filename, "sha256": d.sha256, "carried_over": d.carried_over}
             for d in sub.documents]
+
+
+def entity_keys(form: SubmissionForm) -> tuple[set[str], str | None]:
+    """PANs and GSTIN identifying the legal entity on a submission. The PAN embedded in the GSTIN counts,
+    so the same company submitting its registration from another state still matches."""
+    pans = {p for p in (clean_id(form.pan), clean_id(form.gstin)[2:12] if len(clean_id(form.gstin)) >= 12 else "") if p}
+    return pans, clean_id(form.gstin) or None
+
+
+def find_cases_for_entity(session: Session, form: SubmissionForm) -> list[m.Case]:
+    """Existing cases (any status) for the same legal entity, by PAN or GSTIN."""
+    pans, gstin = entity_keys(form)
+    conditions = [m.Case.pan.in_(pans)] if pans else []
+    if gstin:
+        conditions.append(m.Case.gstin == gstin)
+    if not conditions:
+        return []  # nothing identifies the entity yet (COMP-01 will ask for it)
+    return list(session.scalars(select(m.Case).where(or_(*conditions)).order_by(m.Case.id)))
 
 
 def create_case(session: Session, form: SubmissionForm, uploads: list[UploadedFile], *,

@@ -18,6 +18,7 @@ from app.documents.inspect import MAX_BYTES
 from app.domain.models import CaseInput, Evaluation, Submission
 from app.llm.extract import UploadedFile
 from app.pipeline.runner import (
+    DuplicateCaseError,
     PipelineDeps,
     RunInProgressError,
     default_deps,
@@ -120,7 +121,20 @@ def create_case_endpoint(
     uploads = _uploads({"gst_certificate": gst_certificate, "pan_card": pan_card, "bank_proof": bank_proof})
     if sample_id is not None and sample_id not in sample_ids():
         sample_id = None
-    case_id, run_id = submit_case(form, uploads, submitted_by=submitted_by, sample_id=sample_id, deps=deps)
+    try:
+        case_id, run_id = submit_case(form, uploads, submitted_by=submitted_by, sample_id=sample_id, deps=deps)
+    except DuplicateCaseError as e:
+        # Nothing was created. Point the user at the existing case and what they can do with it.
+        with session_scope() as s:
+            matches = [{**ser.case_row_json(c), **{k: v for k, v in ser.case_detail_json(c).items()
+                                                   if k in ("can_resubmit", "can_replay", "selected_version")}}
+                       for c in (s.get(m.Case, cid) for cid in e.case_ids)]
+        raise HTTPException(409, {
+            "code": "duplicate_case",
+            "message": "This legal entity already has an onboarding case. Continue on it instead of starting a new one: "
+                       "replay it to reprocess the same documents, or resubmit to correct it.",
+            "matches": matches,
+        }) from None
     return {"case_id": case_id, "reference": f"VO-{case_id:04d}", "run_id": run_id}
 
 

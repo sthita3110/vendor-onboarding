@@ -152,6 +152,23 @@ Approved ⇔ every required check has status `pass`.
 
 ---
 
+## 4b. Intake: one case per legal entity
+
+Not a rule in the catalog — it runs before a case exists. `POST /api/cases` first looks for an existing case
+(any status) for the same legal entity: same PAN, same GSTIN, or a GSTIN whose embedded PAN matches. If one
+exists, nothing is created (no case, no stored files, no model call); the API returns 409 `duplicate_case`
+with the matching case(s), and the attempt is recorded on each matching case's audit trail as
+`duplicate_submission.blocked`.
+
+| Existing case | Offered |
+|---|---|
+| Pending, no run in progress | Open · Resubmit (new version, carrying over what was entered) · Replay (new run) |
+| Approved / Rejected (final) | Open · Replay |
+| Run in progress | Open |
+
+There is deliberately no "create anyway": reprocessing the same documents is a Replay, correcting a submission
+is a Resubmit. Without a PAN or GSTIN there is nothing to match on; the case is created and COMP-01 asks for them.
+
 ## 5. Golden cases
 
 All sample values are fictitious. PANs follow real structure (4th char = holder type, 5th char = first letter of the entity name). GSTIN check digits are computed by `backend/scripts/generate_data.py`; values shown as `…` are filled by the generator. Generated packets live in `backend/data/samples/`; tests in `backend/tests/test_golden.py`. Each case asserts: final status, sub-state, and the **exact set** of failing rule IDs.

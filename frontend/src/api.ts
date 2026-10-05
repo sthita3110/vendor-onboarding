@@ -100,9 +100,12 @@ export function setPasscode(value: string | null): void {
 
 export class ApiError extends Error {
   status: number
-  constructor(status: number, message: string) {
+  /** The response's `detail` as sent by the API (string, or a structured object such as duplicate_case). */
+  detail: unknown
+  constructor(status: number, message: string, detail?: unknown) {
     super(message)
     this.status = status
+    this.detail = detail
   }
 }
 
@@ -125,13 +128,16 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   }
   if (!res.ok) {
     let message = res.statusText
+    let detail: unknown
     try {
-      const body = await res.json()
-      message = typeof body.detail === 'string' ? body.detail : JSON.stringify(body.detail)
+      detail = (await res.json()).detail
+      message = typeof detail === 'string' ? detail
+        : detail && typeof detail === 'object' && 'message' in detail ? String((detail as { message: unknown }).message)
+        : JSON.stringify(detail)
     } catch {
       /* non-JSON error body */
     }
-    throw new ApiError(res.status, message)
+    throw new ApiError(res.status, message, detail)
   }
   return res.json() as Promise<T>
 }
@@ -334,4 +340,24 @@ export async function openDocument(url: string): Promise<void> {
   const blobUrl = URL.createObjectURL(await res.blob())
   if (tab) tab.location.href = blobUrl
   else window.location.href = blobUrl
+}
+
+// ---------- duplicate-case check ----------
+
+export interface DuplicateMatch extends CaseRow {
+  can_resubmit: boolean
+  can_replay: boolean
+  selected_version: number
+}
+
+export interface DuplicateCase {
+  code: 'duplicate_case'
+  message: string
+  matches: DuplicateMatch[]
+}
+
+export function asDuplicate(error: unknown): DuplicateCase | null {
+  if (error instanceof ApiError && error.status === 409 && error.detail && typeof error.detail === 'object'
+    && (error.detail as { code?: string }).code === 'duplicate_case') return error.detail as DuplicateCase
+  return null
 }

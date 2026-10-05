@@ -28,6 +28,7 @@ from app.db.repository import (
     add_submission,
     create_case,
     create_run,
+    find_cases_for_entity,
     load_uploads,
     save_evaluation,
     set_case_status,
@@ -106,10 +107,28 @@ def _create_stage_rows(session, run: m.Run) -> None:
         session.add(m.StageEvent(run_id=run.id, seq=seq, stage=key, label=label))
 
 
+class DuplicateCaseError(Exception):
+    """The legal entity already has a case: continue on it (open, resubmit, replay) instead of a new one."""
+
+    def __init__(self, case_ids: list[int]):
+        super().__init__(f"Existing case(s) for this entity: {case_ids}")
+        self.case_ids = case_ids
+
+
 def submit_case(form: SubmissionForm, uploads: list[UploadedFile], *, submitted_by: str = "vendor",
                 source: str = "form", sample_id: str | None = None, background: bool = True,
                 deps: PipelineDeps | None = None) -> tuple[int, int]:
-    """Store a new case and start its first run. Returns (case_id, run_id) immediately when background."""
+    """Store a new case and start its first run. Returns (case_id, run_id) immediately when background.
+
+    Raises DuplicateCaseError, creating nothing (no case, no stored files, no model call), when the legal
+    entity already has a case: reprocessing is a Replay (new run), a correction is a Resubmit (new version)."""
+    with session_scope() as s:
+        duplicates = [c.id for c in find_cases_for_entity(s, form)]
+        for case_id in duplicates:  # leave a trace on the case someone tried to duplicate
+            audit(s, case_id, "duplicate_submission.blocked", actor=submitted_by, sample_id=sample_id,
+                  pan=form.pan, gstin=form.gstin)
+    if duplicates:  # raised after the session commits, so the audit rows are kept
+        raise DuplicateCaseError(duplicates)
     with session_scope() as s:
         case = create_case(s, form, uploads, submitted_by=submitted_by, source=source, sample_id=sample_id)
         run = create_run(s, case, case.submissions[0], trigger="submission")
