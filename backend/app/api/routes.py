@@ -25,7 +25,7 @@ from app.pipeline.runner import (
     resubmit_case,
     submit_case,
 )
-from app.reference.data import SAMPLES_DIR
+from app.reference.data import SAMPLES_DIR, load_reference
 from app.rules.catalog import RULES
 from app.rules.evaluate import evaluate
 from app.samples import load_sample, sample_ids
@@ -67,12 +67,19 @@ def rules() -> list[dict]:
              "outcome": r.outcome.value, "required": r.required} for r in RULES.values()]
 
 
+@router.get("/reference/states")
+def states() -> list[str]:
+    """State names for the address dropdown, exactly as TAX-04 compares them to the GSTIN state code."""
+    return sorted(set(load_reference().state_codes.values()))
+
+
 # ---------- samples ("Load sample" in the form) ----------
 
 @router.get("/samples")
 def list_samples() -> list[dict]:
+    order = sorted(sample_ids(), key=lambda i: (not i.startswith("H"), i))  # happy path first
     return [{"id": s["id"], "title": s["title"], "description": s["description"]}
-            for s in map(load_sample, sample_ids())]
+            for s in map(load_sample, order)]
 
 
 @router.get("/samples/{sample_id}")

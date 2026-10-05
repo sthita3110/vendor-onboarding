@@ -11,7 +11,7 @@ Design docs: [ARCHITECTURE.md](ARCHITECTURE.md) · [RULES.md](RULES.md) · [ASSU
 | 1 — Decision core (validators, name matching, cross-checks, mock adapters, risk, decision engine, golden tests) | ✅ |
 | 2 — Documents + AI extraction (sample PDFs, OpenAI extraction, file checks, grounding, cache, live golden tests) | ✅ |
 | 3 — Orchestration + persistence + API (database, background runner, API, demo seeding + replay) | ✅ |
-| 4 — Frontend | 4a shell, passcode screen, dashboard ✅ · 4b–4c — |
+| 4 — Frontend | 4a shell, passcode, dashboard ✅ · 4b new vendor form + live run view ✅ · 4c — |
 | 5 — Communications + human review | — |
 | 6 — Hardening + demo | — |
 

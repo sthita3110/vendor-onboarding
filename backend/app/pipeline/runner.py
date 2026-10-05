@@ -226,6 +226,8 @@ def _summarize_reading(extractions: dict[str, Extraction], seconds: float) -> tu
     details = {
         "seconds": round(seconds, 1), "documents": len(docs), "scanned": len(scanned), "cached": cached,
         "per_document": {slot: {"filename": ex.document.filename, "type": ex.document.classified_type,
+                                "scanned": bool(ex.document.fields) and all(
+                                    f.grounded == "image" for f in ex.document.fields.values()),
                                 "latency_ms": ex.meta.get("latency_ms"), "cached": ex.meta.get("cached"),
                                 "error": ex.document.extraction_error, "file_problem": ex.document.file_problem}
                          for slot, ex in extractions.items()},

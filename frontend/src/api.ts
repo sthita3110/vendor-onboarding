@@ -146,3 +146,75 @@ export const listCases = (params: { status?: string; q?: string } = {}) => {
 
 export const getMetrics = () => api<Metrics>('/api/metrics')
 export const getRun = (id: number) => api<Run>(`/api/runs/${id}`)
+
+// ---------- submission ----------
+
+export type Slot = 'gst_certificate' | 'pan_card' | 'bank_proof'
+export type EntityType = 'company' | 'llp' | 'partnership' | 'proprietorship'
+
+export interface SubmissionForm {
+  legal_name: string
+  trade_name: string
+  entity_type: EntityType | ''
+  address: { line1: string; city: string; state: string; pin_code: string }
+  contact_name: string
+  contact_email: string
+  gstin: string
+  pan: string
+  bank: { account_holder_name: string; account_number: string; ifsc: string; bank_name: string }
+}
+
+export interface SampleSummary {
+  id: string
+  title: string
+  description: string
+}
+
+export interface SampleDetail extends SampleSummary {
+  submission: Partial<SubmissionForm> & Record<string, unknown>
+  files: { slot: Slot; filename: string; url: string }[]
+}
+
+export const listSamples = () => api<SampleSummary[]>('/api/samples')
+export const getSample = (id: string) => api<SampleDetail>(`/api/samples/${id}`)
+export const getStates = () => api<string[]>('/api/reference/states')
+
+/** Download a sample PDF as a File, so a loaded sample uploads exactly like a user-picked file. */
+export async function fetchSampleFile(url: string, filename: string): Promise<File> {
+  const headers = new Headers()
+  const passcode = getPasscode()
+  if (passcode) headers.set('X-App-Passcode', passcode)
+  const res = await fetch(url, { headers })
+  if (!res.ok) throw new ApiError(res.status, `Couldn't load ${filename}`)
+  return new File([await res.blob()], filename, { type: 'application/pdf' })
+}
+
+/** Blank strings become null so the backend sees "missing" (COMP-01), not an empty value. */
+function toPayload(form: SubmissionForm): Record<string, unknown> {
+  const clean = (v: string) => (v.trim() === '' ? null : v.trim())
+  return {
+    legal_name: clean(form.legal_name), trade_name: clean(form.trade_name),
+    entity_type: form.entity_type || null,
+    address: Object.fromEntries(Object.entries(form.address).map(([k, v]) => [k, clean(v)])),
+    contact_name: clean(form.contact_name), contact_email: clean(form.contact_email),
+    gstin: clean(form.gstin), pan: clean(form.pan),
+    bank: Object.fromEntries(Object.entries(form.bank).map(([k, v]) => [k, clean(v)])),
+  }
+}
+
+export interface Created {
+  case_id: number
+  reference: string
+  run_id: number
+}
+
+export function createCase(form: SubmissionForm, files: Partial<Record<Slot, File>>, sampleId?: string) {
+  const body = new FormData()
+  body.set('submission', JSON.stringify(toPayload(form)))
+  if (sampleId) body.set('sample_id', sampleId)
+  for (const [slot, file] of Object.entries(files)) if (file) body.set(slot, file)
+  return api<Created>('/api/cases', { method: 'POST', body })
+}
+
+export const replayCase = (caseId: number) =>
+  api<{ case_id: number; run_id: number }>(`/api/cases/${caseId}/replay`, { method: 'POST' })

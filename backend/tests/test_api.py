@@ -191,3 +191,9 @@ def test_spa_routes_serve_index_and_api_404_stays_json():
     r = client.get("/api/nope")
     assert r.status_code == 404 and r.headers["content-type"].startswith("application/json")
     assert client.get("/../backend/.env").status_code in (200, 404) and "OPENAI" not in client.get("/../backend/.env").text
+
+
+def test_states_for_address_dropdown():
+    states = client.get("/api/reference/states").json()
+    assert "Karnataka" in states and "Tamil Nadu" in states and states == sorted(states)
+    assert states.count("Andhra Pradesh") == 1  # two GST codes, one state
