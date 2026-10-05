@@ -22,7 +22,8 @@ H2 is not seeded; submitting it creates **VO-0007**.
 
 ## The script (~12 minutes)
 
-Expect each live run to take **12–18 s** end to end: ~5–10 s reading documents, ~1 s simulated providers, ~2–4 s
+The interviewers want the happy path **and the edge cases run live** — every edge case below is executed (Replay,
+Resubmit or Reapply), not just opened. Expect each live run to take **12–18 s** end to end: ~5–10 s reading documents, ~1 s simulated providers, ~2–4 s
 writing the vendor message. Rehearsed in this order on 2026-10-05: H2 approved · E3 v2 approved · E2 request info ·
 E4 duplicate → reapply → rejected again.
 
@@ -50,18 +51,21 @@ Point at: status tiles · straight-through rate (approved first time, no human t
 *Do:* **Open case** → expand one check to show evidence → **Documents** tab (quotes, "Found in document text") →
 **Vendor messages** (AI wording, checklist from the rules).
 
-### 3. Vendor-fixable problems and the vendor loop — 2½ min (E3)
-*Do:* Open **VO-0004** (Kaveri Packaging, awaiting vendor).
+### 3. Vendor-fixable problems and the vendor loop — 2½ min (E3, run live)
+*Do:* Open **VO-0004** (Kaveri Packaging, awaiting vendor) → **Replay** — the edge case runs live, not just shown.
+*Point at:* "Reading documents" → *"identified as Invoice — not what this slot needs"*.
 *Say:* "The vendor uploaded an invoice as their cancelled cheque — and the invoice even prints bank details. A field
 check would accept it; the system recognised what the document *is*. And the GSTIN is valid but it's their Karnataka
 registration for a Tamil Nadu address — one GSTIN per state, an honest mistake."
-*Show:* the two vendor asks → **Vendor messages** tab (exact checklist).
+*Show:* the two vendor asks → **Vendor messages** tab (exact checklist). "The outcome didn't change, so the replay didn't
+email the vendor again." 
 *Do:* **Resubmit for vendor → Load sample → E3R** → point at the PAN card "Kept from version 1" → **Submit version 2**.
 *Say:* "Only the changed documents are re-sent. Same case, new version." → Approved → back on the case: History shows
 **v1 awaiting vendor → v2 approved**.
 
-### 4. A fraud pattern and the human decision — 2½ min (E2)
-*Do:* Open **VO-0003** (Northwind, in review) → expand **Bank account belongs to the company**.
+### 4. A fraud pattern and the human decision — 2½ min (E2, run live)
+*Do:* Open **VO-0003** (Northwind, in review) → **Replay** → watch "Verifying with GST registry and bank" turn amber →
+**Open case** → expand **Bank account belongs to the company**.
 *Say:* "Everything on paper matches. But the bank says the account belongs to an individual, Rakesh K Sharma — who is
 also the vendor's contact person. That's the classic payment-diversion pattern. It isn't auto-rejected — a sole
 proprietor's account is a legitimate explanation — so a person decides."
