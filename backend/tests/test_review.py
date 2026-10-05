@@ -168,3 +168,21 @@ def test_resubmission_after_request_info_unblocks_and_runs_again():
     c = case(e5)
     # Same facts -> DUP-01 fires again -> back to review for a fresh human decision
     assert c["display_status"] == "INTERNAL_REVIEW" and c["can_review"] is True and c["human_decision"] is None
+
+
+def test_cannot_approve_an_interrupted_run():
+    """Regression (found in the restart drill): an interrupted run has no results at all — not 'nothing failed'."""
+    from app.db import models as m
+    from app.db.engine import session_scope
+    from app.pipeline.runner import recover_interrupted_runs
+
+    h1 = cid("H1")
+    with session_scope() as s:  # a replay cut off mid-way by a restart
+        run = s.get(m.Case, h1).runs[-1]
+        run.status = "running"
+    recover_interrupted_runs()
+    c = case(h1)
+    assert c["display_status"] == "INTERNAL_REVIEW" and [x["rule_id"] for x in c["reasons"]] == ["SYS-01"]
+    assert c["can_review"] is True and c["can_approve"] is False and "didn't complete" in c["approve_blocked_reason"]
+    assert review(h1, "approve").status_code == 409
+    assert c["can_replay"] is True  # the way forward

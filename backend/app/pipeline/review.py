@@ -53,6 +53,10 @@ def review_options(case: m.Case, actions: list[m.ReviewAction]) -> ReviewOptions
                   and not human_decided_since_last_run(case, actions))
     if not can_review:
         return ReviewOptions(False, False, None)
+    # Positive evidence first: an interrupted or failed run has *no* results, so "nothing blocked" proves nothing.
+    if run is None or run.status != "completed" or run.decision is None or "SYS-01" in (case.failing_rules or []):
+        return ReviewOptions(True, False, "The latest checks didn't complete. Replay the case before approving — "
+                                          "a vendor can't be approved on checks that never ran.")
     not_run = sorted({r.rule_id for r in run.check_results if r.status in ("blocked", "error")}) if run else []
     if not_run:
         return ReviewOptions(True, False, f"Some checks didn't run ({', '.join(not_run)}). Replay, request a "

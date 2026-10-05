@@ -10,6 +10,7 @@ Per document:  file intake check -> cache lookup -> model call -> map fields -> 
 from __future__ import annotations
 
 import time
+import logging
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from typing import Any
@@ -21,6 +22,26 @@ from app.llm.cache import ExtractionCache, cache_key
 from app.llm.client import DocumentReader
 from app.llm.prompts import PROMPT_VERSION
 from app.llm.schema import FIELDS_BY_TYPE
+
+log = logging.getLogger(__name__)
+
+
+def describe_ai_error(e: Exception) -> str:
+    """A plain, safe description of an AI-service failure for the UI, audit trail and database. Provider error
+    text can echo request details (e.g. a masked API key), so it is never shown — only the category."""
+    name = type(e).__name__
+    if name in ("AuthenticationError", "PermissionDeniedError"):
+        return "The AI service rejected our credentials (check the API key)"
+    if name in ("APITimeoutError", "TimeoutError", "ReadTimeout"):
+        return "The AI service timed out"
+    if name == "RateLimitError":
+        return "The AI service is rate-limiting requests (or the account is out of credit)"
+    if name in ("APIConnectionError", "ConnectionError", "ConnectError"):
+        return "Couldn't reach the AI service"
+    if name in ("InternalServerError", "ServiceUnavailableError"):
+        return "The AI service had an internal error"
+    return f"The AI service failed ({name})"
+
 
 MIME_BY_EXT = {".pdf": "application/pdf", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg"}
 
@@ -83,12 +104,13 @@ def read_document(reader: DocumentReader, upload: UploadedFile, cache: Extractio
         try:
             result = reader.read(upload.data, upload.filename, mime)
         except Exception as e:  # network, timeout, refusal, bad JSON — all fail closed
-            meta["error"] = f"{type(e).__name__}: {e}"
+            log.warning("Document read failed for %s: %r", upload.filename, e)  # full detail stays in the server log
+            meta["error"] = describe_ai_error(e)
             meta["latency_ms"] = int((time.monotonic() - start) * 1000)
             return _failed(upload, meta, extraction_error=meta["error"])
         raw = result.data
         meta.update(latency_ms=result.latency_ms, input_tokens=result.input_tokens,
-                    output_tokens=result.output_tokens, cached=False)
+                    output_tokens=result.output_tokens, cached=False, hedged=result.hedged)
 
     try:
         doc = to_document(upload.slot, upload.filename, raw)

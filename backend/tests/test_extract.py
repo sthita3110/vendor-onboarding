@@ -88,7 +88,15 @@ def test_unreadable_flag_is_preserved():
 def test_reader_failure_becomes_extraction_error():
     ex = read_document(FakeReader(fail=TimeoutError("timed out")), upload())
     assert ex.document.extraction_error and ex.document.classified_type is None
-    assert "TimeoutError" in ex.meta["error"]
+    assert ex.meta["error"] == "The AI service timed out"
+
+
+def test_provider_error_text_never_leaks():
+    """Provider errors can echo request details (e.g. a masked key); only a category is stored and shown."""
+    AuthenticationError = type("AuthenticationError", (Exception,), {})
+    ex = read_document(FakeReader(fail=AuthenticationError("Incorrect API key provided: sk-proj-ABC***xyz")), upload())
+    assert ex.document.extraction_error == "The AI service rejected our credentials (check the API key)"
+    assert "sk-" not in ex.document.extraction_error and "sk-" not in str(ex.meta)
 
 
 def test_malformed_output_becomes_extraction_error():
@@ -180,3 +188,54 @@ def test_temperature_dropped_for_models_that_reject_it():
     reader.read(b"%PDF", "p.pdf", "application/pdf")
     reader.read(b"%PDF", "p.pdf", "application/pdf")
     assert [("temperature" in c) for c in fake.responses.calls] == [True, False, False]
+
+
+# ---------- tail-latency hedge ----------
+
+class _SlowThenFast:
+    """responses.create: the first call is slow, later calls fast — like an occasional slow API request."""
+
+    def __init__(self, first_delay: float, fail_first: bool = False):
+        self.calls, self.first_delay, self.fail_first = 0, first_delay, fail_first
+
+    def create(self, **kwargs):
+        self.calls += 1
+        n = self.calls
+        if n == 1:
+            time.sleep(self.first_delay)
+            if self.fail_first:
+                raise ConnectionError("first request failed")
+        raw = raw_from_truth(load_sample("H1")["case"]["documents"]["pan_card"])
+        return type("R", (), {"output_text": __import__("json").dumps(raw), "usage": None})()
+
+
+def _reader(responses, hedge_after):
+    client = type("C", (), {"responses": responses})()
+    s = Settings(openai_api_key="t", openai_model="m", openai_timeout_s=5, openai_reasoning_effort=None,
+                 openai_hedge_after_s=hedge_after)
+    return OpenAIReader(s, client=client)
+
+
+def test_slow_request_is_hedged_and_fast_backup_wins():
+    responses = _SlowThenFast(first_delay=1.0)
+    start = time.monotonic()
+    result = _reader(responses, hedge_after=0.1).read(b"%PDF", "p.pdf", "application/pdf")
+    assert time.monotonic() - start < 0.6 and result.hedged is True and responses.calls == 2
+
+
+def test_fast_request_is_not_hedged():
+    responses = _SlowThenFast(first_delay=0.0)
+    result = _reader(responses, hedge_after=0.5).read(b"%PDF", "p.pdf", "application/pdf")
+    assert result.hedged is False and responses.calls == 1
+
+
+def test_hedge_prefers_a_success_over_a_failure():
+    responses = _SlowThenFast(first_delay=0.2, fail_first=True)
+    result = _reader(responses, hedge_after=0.05).read(b"%PDF", "p.pdf", "application/pdf")
+    assert result.hedged is True and result.data["doc_type"] == "pan_card"
+
+
+def test_hedge_can_be_turned_off():
+    responses = _SlowThenFast(first_delay=0.2)
+    result = _reader(responses, hedge_after=0).read(b"%PDF", "p.pdf", "application/pdf")
+    assert result.hedged is False and responses.calls == 1

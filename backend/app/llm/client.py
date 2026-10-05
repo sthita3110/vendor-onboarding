@@ -9,6 +9,7 @@ from __future__ import annotations
 import base64
 import json
 import time
+from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from dataclasses import dataclass
 from typing import Any, Protocol
 
@@ -26,6 +27,7 @@ class ReadResult:
     latency_ms: int
     input_tokens: int | None = None
     output_tokens: int | None = None
+    hedged: bool = False  # a backup request was sent because the first was slow
 
 
 class DocumentReader(Protocol):
@@ -59,6 +61,41 @@ class OpenAIReader:
         # SDK retries connection errors, 429 and 5xx; one retry keeps worst-case latency bounded.
         self._client = client or OpenAI(api_key=s.openai_api_key, timeout=s.openai_timeout_s, max_retries=1)
         self._send_temperature = True  # dropped automatically for models that reject it
+        self._hedge_after_s = s.openai_hedge_after_s
+
+    def _create(self, request: dict[str, Any]):
+        try:
+            return self._client.responses.create(**request, **({"temperature": 0} if self._send_temperature else {}))
+        except BadRequestError as e:
+            # Reasoning models reject `temperature`; retry once without it and remember.
+            if self._send_temperature and "temperature" in str(e):
+                self._send_temperature = False
+                return self._client.responses.create(**request)
+            raise
+
+    def _hedged(self, call):
+        """Tail-latency hedge: if the request hasn't answered within `hedge_after_s`, send one identical backup
+        and use whichever answers first (preferring a success). Returns (response, hedged?)."""
+        if self._hedge_after_s <= 0:
+            return call(), False
+        pool = ThreadPoolExecutor(max_workers=2)
+        try:
+            first = pool.submit(call)
+            done, _ = wait([first], timeout=self._hedge_after_s)
+            if done:
+                return first.result(), False
+            backup = pool.submit(call)
+            pending = {first, backup}
+            error: BaseException | None = None
+            while pending:
+                done, pending = wait(pending, return_when=FIRST_COMPLETED)
+                for f in done:
+                    if f.exception() is None:
+                        return f.result(), True
+                    error = f.exception()
+            raise error  # type: ignore[misc]  # both failed
+        finally:
+            pool.shutdown(wait=False)  # never wait for the slower request
 
     def read(self, data: bytes, filename: str, mime: str) -> ReadResult:
         request: dict[str, Any] = {
@@ -75,15 +112,7 @@ class OpenAIReader:
             request["reasoning"] = {"effort": self._reasoning_effort}
 
         start = time.monotonic()
-        try:
-            resp = self._client.responses.create(**request, **({"temperature": 0} if self._send_temperature else {}))
-        except BadRequestError as e:
-            # Reasoning models reject `temperature`; retry once without it and remember.
-            if self._send_temperature and "temperature" in str(e):
-                self._send_temperature = False
-                resp = self._client.responses.create(**request)
-            else:
-                raise
+        resp, hedged = self._hedged(lambda: self._create(request))
         latency_ms = int((time.monotonic() - start) * 1000)
 
         usage = getattr(resp, "usage", None)
@@ -93,4 +122,5 @@ class OpenAIReader:
             latency_ms=latency_ms,
             input_tokens=getattr(usage, "input_tokens", None),
             output_tokens=getattr(usage, "output_tokens", None),
+            hedged=hedged,
         )

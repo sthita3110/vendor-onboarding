@@ -42,13 +42,15 @@ def run_once(cid: str, reader, cache, ctx) -> dict:
         if not score.type_ok:
             misreads.append(f"{slot}: type {score.got_type}")
         misreads += [f"{slot}: {m}" for m in score.key_mismatches]
-    return {"outcome": outcome(d), "misreads": misreads, "read_s": read_s}
+    hedged = sum(bool(ex.meta.get("hedged")) for ex in extractions.values())
+    return {"outcome": outcome(d), "misreads": misreads, "read_s": read_s, "hedged": hedged}
 
 
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--runs", type=int, default=1)
     ap.add_argument("--cache", action="store_true", help="use the extraction cache")
+    ap.add_argument("--workers", type=int, default=4, help="cases run in parallel (1 = like a live demo)")
     args = ap.parse_args()
 
     settings = get_settings()
@@ -57,11 +59,11 @@ def main() -> None:
     ctx = default_context()
     ids = sample_ids()
     jobs = [(cid, i) for cid in ids for i in range(args.runs)]
-    with ThreadPoolExecutor(max_workers=4) as pool:
+    with ThreadPoolExecutor(max_workers=args.workers) as pool:
         results = list(pool.map(lambda job: run_once(job[0], reader, cache, ctx), jobs))
 
     unstable = 0
-    print(f"model={reader.model} runs={args.runs} cache={'on' if cache else 'off'}\n")
+    print(f"model={reader.model} runs={args.runs} workers={args.workers} cache={'on' if cache else 'off'}\n")
     for cid in ids:
         sample = load_sample(cid)
         exp = sample["expected"]
@@ -77,6 +79,7 @@ def main() -> None:
                 print(f"       got {r['outcome']}")
             for m in r["misreads"]:
                 print(f"       misread {m}")
+    print(f"\nbackup requests sent (hedged slow reads): {sum(r['hedged'] for r in results)} of {len(results) * 3} reads")
     print(f"\n{'ALL STABLE' if not unstable else f'{unstable} case(s) unstable'}")
     sys.exit(1 if unstable else 0)
 

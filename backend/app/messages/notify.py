@@ -42,7 +42,8 @@ def record_message(session: Session, case: m.Case, run_id: int | None, msg: Mess
 
 
 def describe(msg: Message) -> str:
-    how = "AI-drafted wording, checklist from the rules" if msg.generated_by.startswith("llm:") else msg.generated_by.capitalize()
+    how = ("AI-drafted wording, checklist from the rules" if msg.generated_by.startswith("llm:")
+           else msg.generated_by[:1].upper() + msg.generated_by[1:])
     return f"Message sent to the vendor (simulated) · {how}"
 
 

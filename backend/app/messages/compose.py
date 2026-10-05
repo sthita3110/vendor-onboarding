@@ -10,11 +10,14 @@ Defence in depth:
 
 from __future__ import annotations
 
+import logging
 import re
 from dataclasses import dataclass, field
 from typing import Any, Literal, Protocol
 
 from app.rules.names import normalize_name
+
+log = logging.getLogger(__name__)
 
 Kind = Literal["approved", "action_needed", "under_review", "rejected"]
 
@@ -138,7 +141,8 @@ def compose(ctx: MessageContext, writer: MessageWriter | None, private_terms: se
         try:
             ai = writer.write(facts)
         except Exception as e:  # network, timeout, bad output — fall back, never block a decision
-            generated_by = f"template (AI unavailable: {type(e).__name__})"
+            log.warning("Message wording failed (%s); using template", type(e).__name__)
+            generated_by = "template (AI wording unavailable)"
         else:
             reason = unsafe_reason(ai, private_terms)
             if reason:

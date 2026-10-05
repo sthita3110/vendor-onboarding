@@ -103,7 +103,7 @@ def test_model_greeting_is_not_duplicated():
 
 def test_ai_failure_falls_back_to_template():
     msg = compose(ctx(), FakeWriter(fail=TimeoutError("slow")))
-    assert msg.generated_by == "template (AI unavailable: TimeoutError)" and "  1. " in msg.body
+    assert msg.generated_by == "template (AI wording unavailable)" and "  1. " in msg.body
 
 
 def test_oversized_or_empty_drafts_are_rejected():

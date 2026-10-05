@@ -21,6 +21,7 @@ class Settings:
     openai_model: str
     openai_timeout_s: float
     openai_reasoning_effort: str | None  # only sent if set (reasoning models)
+    openai_hedge_after_s: float = 10.0  # send one backup request if a document read is slower than this (0 = off)
     extraction_cache: bool = True  # EXTRACTION_CACHE=off forces a live model call every time
     extraction_cache_dir: Path = _BACKEND / "data" / "cache" / "extractions"
     app_passcode: str | None = None  # if set, endpoints that spend money require X-App-Passcode
@@ -39,6 +40,7 @@ def get_settings() -> Settings:
         openai_model=os.getenv("OPENAI_MODEL", "gpt-4.1"),
         openai_timeout_s=float(os.getenv("OPENAI_TIMEOUT_S", "45")),
         openai_reasoning_effort=os.getenv("OPENAI_REASONING_EFFORT") or None,
+        openai_hedge_after_s=float(os.getenv("OPENAI_HEDGE_AFTER_S", "10")),
         extraction_cache=os.getenv("EXTRACTION_CACHE", "on").lower() != "off",
         extraction_cache_dir=Path(os.getenv("EXTRACTION_CACHE_DIR", str(_BACKEND / "data" / "cache" / "extractions"))),
         app_passcode=os.getenv("APP_PASSCODE") or None,
