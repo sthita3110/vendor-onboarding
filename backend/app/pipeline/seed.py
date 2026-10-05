@@ -18,13 +18,15 @@ and the resubmission can be demonstrated live with E3R's files.
 from __future__ import annotations
 
 import logging
+import shutil
 
 from sqlalchemy import select
 
 from app.adapters.mock import MockGstRegistry, MockPennyDrop
 from app.db import models as m
 from app.db.audit import audit
-from app.db.engine import session_scope
+from app.db.engine import get_engine, session_scope
+from app.db.storage import uploads_root
 from app.db.repository import create_case, create_run, save_evaluation
 from app.domain.models import CaseInput, DocumentInput, Evaluation
 from app.llm.extract import Extraction
@@ -118,3 +120,24 @@ def seed_demo_cases() -> list[int]:
             case_ids.append(case.id)
     log.info("Seeded %d demo cases", len(case_ids))
     return case_ids
+
+
+class ResetBlockedError(RuntimeError):
+    """A run is in progress; wiping the database under it would corrupt it."""
+
+
+def reset_demo() -> list[int]:
+    """Demo-only environment reset: drop every table (including the audit log), delete uploaded files, and
+    re-seed the demo cases. Equivalent to redeploying onto a fresh database. Refused while a run is in progress.
+    The extraction cache is kept (it holds no case data, only model output keyed by file content)."""
+    with session_scope() as s:
+        if s.scalars(select(m.Run.id).where(m.Run.status.in_(("queued", "running"))).limit(1)).first():
+            raise ResetBlockedError("A run is in progress — wait for it to finish, then reset")
+    engine = get_engine()
+    m.Base.metadata.drop_all(engine)
+    m.Base.metadata.create_all(engine)
+    root = uploads_root()
+    if root.exists():
+        shutil.rmtree(root)
+    log.warning("Demo data reset")
+    return seed_demo_cases()

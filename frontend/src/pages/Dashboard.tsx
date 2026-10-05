@@ -1,9 +1,9 @@
-import { useQuery } from '@tanstack/react-query'
-import { ArrowRight, Info, Plus, Search } from 'lucide-react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { ArrowRight, Info, Plus, RotateCcw, Search } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { getMetrics, listCases, type DisplayStatus, type Metrics } from '../api'
-import { ButtonLink, Card, ErrorNote, PageHeader, ReasonChips, Spinner, StatusBadge, Tag } from '../components/ui'
+import { getMetrics, listCases, resetDemo, type DisplayStatus, type Metrics } from '../api'
+import { Button, ButtonLink, Card, ErrorNote, PageHeader, ReasonChips, Spinner, StatusBadge, Tag } from '../components/ui'
 import { STATUS, cx } from '../lib/style'
 import { percent, relativeTime, seconds } from '../lib/format'
 
@@ -89,6 +89,37 @@ function TopReasons({ m }: { m: Metrics }) {
   )
 }
 
+/** Demo-only reset, behind an explicit confirmation that says exactly what is deleted. */
+function ResetDemo() {
+  const [confirming, setConfirming] = useState(false)
+  const queryClient = useQueryClient()
+  const reset = useMutation({
+    mutationFn: resetDemo,
+    onSuccess: () => { setConfirming(false); queryClient.invalidateQueries() },
+  })
+  if (!confirming) {
+    return (
+      <Button variant="ghost" onClick={() => setConfirming(true)} title="Restore the six seeded demo cases">
+        <RotateCcw className="size-4" /> Reset demo
+      </Button>
+    )
+  }
+  return (
+    <div className="flex flex-col gap-2 rounded-xl bg-rose-50 p-3 text-sm text-rose-900 ring-1 ring-rose-200 sm:max-w-md">
+      <p><strong className="font-semibold">Reset demo data?</strong> This deletes every case, run, review decision,
+        message, uploaded file and audit entry, then restores the six seeded samples. It can't be undone.</p>
+      {reset.error && <ErrorNote error={reset.error} />}
+      <div className="flex gap-2">
+        <button onClick={() => reset.mutate()} disabled={reset.isPending}
+          className="rounded-lg bg-rose-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-rose-800 disabled:opacity-50">
+          {reset.isPending ? 'Resetting…' : 'Yes, reset everything'}
+        </button>
+        <Button variant="secondary" onClick={() => { setConfirming(false); reset.reset() }}>Cancel</Button>
+      </div>
+    </div>
+  )
+}
+
 export function Dashboard() {
   const [tab, setTab] = useState<DisplayStatus | 'ALL'>('ALL')
   const [query, setQuery] = useState('')
@@ -106,7 +137,8 @@ export function Dashboard() {
       <PageHeader
         title="Vendor onboarding"
         subtitle="Every submission, its status, and why — across all runs."
-        actions={<ButtonLink to="/new"><Plus className="size-4" /> New vendor</ButtonLink>}
+        actions={<div className="flex flex-wrap items-start gap-2"><ResetDemo />
+          <ButtonLink to="/new"><Plus className="size-4" /> New vendor</ButtonLink></div>}
       />
 
       {metrics.data && metrics.data.seeded_cases > 0 && (

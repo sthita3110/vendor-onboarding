@@ -32,7 +32,9 @@ from app.pipeline.runner import (
     resubmit_case,
     submit_case,
 )
+from app.config import get_settings
 from app.pipeline.review import ReviewInvalid, ReviewNotAllowed, review_case
+from app.pipeline.seed import ResetBlockedError, reset_demo
 from app.reference.data import SAMPLES_DIR, load_reference
 from app.rules.catalog import RULES
 from app.rules.evaluate import evaluate
@@ -325,6 +327,21 @@ def metrics() -> dict:
         "top_reasons": [{"rule_id": rid, "issue": RULES[rid].issue, "count": n} for rid, n in reasons.most_common(5)],
         "seeded_cases": sum(c.source == "seed" for c in cases),
     }
+
+
+# ---------- demo administration ----------
+
+@router.post("/admin/reset-demo")
+def reset_demo_endpoint() -> dict:
+    """Demo-only: wipe all cases, runs, reviews, messages, audit history and uploads, then re-seed the demo
+    cases. Disabled with DEMO_RESET=off. Refused (409) while a run is in progress."""
+    if not get_settings().demo_reset:
+        raise HTTPException(403, "Demo reset is disabled on this deployment")
+    try:
+        ids = reset_demo()
+    except ResetBlockedError as e:
+        raise HTTPException(409, str(e)) from None
+    return {"reset": True, "seeded_cases": len(ids)}
 
 
 # ---------- developer tool ----------

@@ -74,6 +74,7 @@ Interactive docs: `/docs`.
 | GET | `/api/cases/{id}/audit` | Audit timeline |
 | GET | `/api/metrics` | Counts by status, straight-through rate, median time to decision, top reasons |
 | GET | `/api/rules` | Rule catalog |
+| POST | `/api/admin/reset-demo` | Demo-only: wipe all cases, runs, reviews, messages, audit history and uploads; re-seed the 6 samples (409 while a run is in progress; disabled with `DEMO_RESET=off`) |
 | POST | `/api/evaluate` | Developer tool: rules only on a JSON case (no AI, nothing stored) |
 
 ## Three ways a case gets results

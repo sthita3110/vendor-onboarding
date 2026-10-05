@@ -407,3 +407,6 @@ export function reviewCase(caseId: number, body: { action: ReviewActionView['act
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
   })
 }
+
+/** Demo-only: wipe all cases, runs, reviews, messages, audit history and uploads, then re-seed the samples. */
+export const resetDemo = () => api<{ reset: boolean; seeded_cases: number }>('/api/admin/reset-demo', { method: 'POST' })
