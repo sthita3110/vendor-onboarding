@@ -10,3 +10,4 @@ dist/
 backend/data/cache/
 backend/data/app.db*
 backend/data/uploads/
+frontend/dist/

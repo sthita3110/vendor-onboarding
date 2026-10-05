@@ -1,5 +1,12 @@
 **/.venv
 **/__pycache__
 **/.pytest_cache
+**/node_modules
+**/.env
+frontend/dist
 backend/tests
+backend/data/cache
+backend/data/uploads
+backend/data/app.db*
+.claude
 *.md

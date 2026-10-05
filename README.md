@@ -11,11 +11,13 @@ Design docs: [ARCHITECTURE.md](ARCHITECTURE.md) · [RULES.md](RULES.md) · [ASSU
 | 1 — Decision core (validators, name matching, cross-checks, mock adapters, risk, decision engine, golden tests) | ✅ |
 | 2 — Documents + AI extraction (sample PDFs, OpenAI extraction, file checks, grounding, cache, live golden tests) | ✅ |
 | 3 — Orchestration + persistence + API (database, background runner, API, demo seeding + replay) | ✅ |
-| 4 — Frontend | — |
+| 4 — Frontend | 4a shell, passcode screen, dashboard ✅ · 4b–4c — |
 | 5 — Communications + human review | — |
 | 6 — Hardening + demo | — |
 
 ## Run locally
+
+Backend (API + serves the built frontend at http://localhost:8000):
 
 ```bash
 cd backend
@@ -23,6 +25,14 @@ uv venv --python 3.12 .venv && uv pip install --python .venv/bin/python -r requi
 .venv/bin/python -m pytest -q                  # validators, names, rule mutations, golden cases, API
 .venv/bin/uvicorn app.main:app --reload        # http://localhost:8000/docs
 ```
+
+Frontend development with hot reload (http://localhost:5173, `/api` proxied to the backend on :8000):
+
+```bash
+cd frontend && npm install && npm run dev
+```
+
+Production build (served by the backend from `frontend/dist`): `cd frontend && npm run build`.
 
 Regenerate reference data, sample packets, and sample PDFs (all deterministic):
 
@@ -76,4 +86,4 @@ Seeded: H1, E1, E2, E3, E4, E5. E3R is not seeded — it is E3's corrected resub
 
 ## Deploy
 
-Single container from the repo-root `Dockerfile`; the host injects `$PORT`. Use an always-on tier (no cold starts). A persistent volume is needed from Phase 3, when SQLite is added.
+Single container from the repo-root `Dockerfile` (stage 1 builds the React app with Node, stage 2 runs FastAPI and serves it); the host injects `$PORT`. Use an always-on tier (no cold starts). A persistent volume is needed from Phase 3, when SQLite is added.

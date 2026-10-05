@@ -177,3 +177,17 @@ def test_not_found():
 def test_rules_only_evaluate_still_available():
     body = client.post("/api/evaluate", json=load_sample("E4")["case"]).json()
     assert body["decision"]["status"] == "REJECTED"
+
+
+# ---------- frontend serving ----------
+
+def test_spa_routes_serve_index_and_api_404_stays_json():
+    from app.config import get_settings
+    if not (get_settings().frontend_dist / "index.html").is_file():
+        pytest.skip("frontend not built")
+    for path in ("/", "/cases/3", "/runs/7", "/review"):
+        r = client.get(path)
+        assert r.status_code == 200 and "<div id=\"root\">" in r.text
+    r = client.get("/api/nope")
+    assert r.status_code == 404 and r.headers["content-type"].startswith("application/json")
+    assert client.get("/../backend/.env").status_code in (200, 404) and "OPENAI" not in client.get("/../backend/.env").text

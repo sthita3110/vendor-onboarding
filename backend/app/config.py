@@ -28,6 +28,7 @@ class Settings:
     uploads_dir: Path = _BACKEND / "data" / "uploads"
     mock_latency_ms: int = 400  # simulated provider round-trip; labelled "Simulated provider" in the UI
     seed_demo: bool = True  # on startup, pre-populate demo cases if the database is empty
+    frontend_dist: Path = _BACKEND.parent / "frontend" / "dist"  # built React app, served by FastAPI
 
 
 def get_settings() -> Settings:
@@ -43,4 +44,5 @@ def get_settings() -> Settings:
         uploads_dir=Path(os.getenv("UPLOADS_DIR", str(_BACKEND / "data" / "uploads"))),
         mock_latency_ms=int(os.getenv("MOCK_LATENCY_MS", "400")),
         seed_demo=os.getenv("SEED_DEMO", "on").lower() != "off",
+        frontend_dist=Path(os.getenv("FRONTEND_DIST", str(_BACKEND.parent / "frontend" / "dist"))),
     )
