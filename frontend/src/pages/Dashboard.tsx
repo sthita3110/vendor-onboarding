@@ -209,6 +209,7 @@ export function Dashboard() {
                               <Tag tone={c.source === 'seed' ? 'slate' : 'teal'}>{c.source_label}</Tag>
                               {c.versions > 1 && <Tag>v{c.versions}</Tag>}
                               {c.previous_case_id && <Tag>Reapplication</Tag>}
+                              {c.vendor_responded && <Tag tone="teal">Vendor responded</Tag>}
                             </div>
                           </td>
                           <td className="min-w-48 px-4 py-3 align-top">

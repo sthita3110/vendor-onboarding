@@ -8,6 +8,7 @@ export interface Reason {
 }
 
 export interface CaseRow {
+  vendor_responded: boolean
   id: number
   reference: string
   vendor_name: string | null
@@ -318,6 +319,16 @@ export interface VendorMessage {
   vendor_name?: string | null
 }
 
+export interface RequestContext {
+  state: 'waiting' | 'responded'
+  request: ReviewActionView
+  requested_on_version: number
+  response_version: number | null
+  responded_at: string | null
+  replaced_documents: { slot: Slot; label: string; filename: string }[]
+  changed_fields: { field: string; before: string | null; after: string | null }[]
+}
+
 export interface CaseDetail extends CaseRow {
   pan: string | null
   can_resubmit: boolean
@@ -329,6 +340,7 @@ export interface CaseDetail extends CaseRow {
   review_actions: ReviewActionView[]
   human_decision: ReviewActionView | null
   messages: VendorMessage[]
+  request_context: RequestContext | null
   previous_case: CaseLink | null
   superseded_by: CaseLink[]
   selected_version: number

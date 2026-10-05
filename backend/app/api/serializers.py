@@ -130,10 +130,64 @@ def document_json(case_id: int, d: m.Document) -> dict[str, Any]:
             "url": f"/api/cases/{case_id}/documents/{d.id}"}
 
 
+FIELD_LABELS = {
+    "legal_name": "Legal name", "trade_name": "Trade name", "entity_type": "Business type",
+    "address.line1": "Address", "address.city": "City", "address.state": "State", "address.pin_code": "PIN code",
+    "contact_name": "Contact name", "contact_email": "Contact email", "gstin": "GSTIN", "pan": "PAN",
+    "bank.account_holder_name": "Account holder", "bank.account_number": "Account number", "bank.ifsc": "IFSC",
+    "bank.bank_name": "Bank name",
+}
+SLOT_LABELS = {"gst_certificate": "GST certificate", "pan_card": "PAN card", "bank_proof": "Cheque / bank letter"}
+
+
+def _flatten(payload: dict[str, Any], prefix: str = "") -> dict[str, Any]:
+    out: dict[str, Any] = {}
+    for k, v in (payload or {}).items():
+        if isinstance(v, dict):
+            out.update(_flatten(v, f"{prefix}{k}."))
+        else:
+            out[f"{prefix}{k}"] = v
+    return out
+
+
+def request_context(c: m.Case, actions: list[m.ReviewAction]) -> dict[str, Any] | None:
+    """The reviewer's open information request and, once the vendor resubmits, what came back.
+    Only while the latest review action on the case is a request for information."""
+    if not actions or actions[-1].action != "request_info":
+        return None
+    req = actions[-1]
+    asked_run = next((r for r in c.runs if r.id == req.run_id), None)
+    asked_version = asked_run.submission.version if asked_run else c.submissions[0].version
+    latest = c.submissions[-1]
+    ctx: dict[str, Any] = {"state": "waiting", "request": review_json(req), "requested_on_version": asked_version,
+                           "response_version": None, "responded_at": None, "replaced_documents": [],
+                           "changed_fields": []}
+    if latest.version <= asked_version:
+        return ctx
+    before = next(s for s in c.submissions if s.version == asked_version)
+    old, new = _flatten(before.payload), _flatten(latest.payload)
+    ctx.update(
+        state="responded", response_version=latest.version, responded_at=iso(latest.created_at),
+        replaced_documents=[{"slot": d.slot, "label": SLOT_LABELS.get(d.slot, d.slot), "filename": d.filename}
+                            for d in latest.documents if not d.carried_over],
+        changed_fields=[{"field": FIELD_LABELS.get(k, k), "before": old.get(k), "after": new.get(k)}
+                        for k in FIELD_LABELS if (old.get(k) or None) != (new.get(k) or None)],
+    )
+    return ctx
+
+
+def _review_actions(c: m.Case) -> list[m.ReviewAction]:
+    session = object_session(c)
+    return list(session.query(m.ReviewAction).filter(m.ReviewAction.case_id == c.id)
+                .order_by(m.ReviewAction.id)) if session else []
+
+
 def case_row_json(c: m.Case) -> dict[str, Any]:
     """Dashboard / queue row."""
     latest = c.runs[-1] if c.runs else None
+    ctx = request_context(c, _review_actions(c))
     return {
+        "vendor_responded": bool(ctx and ctx["state"] == "responded"),
         "id": c.id, "reference": c.reference, "vendor_name": c.vendor_name, "gstin": c.gstin,
         "status": c.status, "sub_state": c.sub_state, "display_status": display_status(c.status, c.sub_state),
         "reasons": reasons(c.failing_rules), "versions": len(c.submissions),
@@ -172,6 +226,7 @@ def case_detail_json(c: m.Case, version: int | None = None) -> dict[str, Any]:
         "messages": [message_json(x) for x in (session.query(m.Communication).filter(m.Communication.case_id == c.id)
                                               .order_by(m.Communication.id.desc()) if session else [])],
         "human_decision": review_json(actions[-1]) if decided_by_human else None,
+        "request_context": request_context(c, actions),
         "can_reapply": bool(session) and can_reapply(session, c),
         "previous_case": case_link(previous) if previous else None,
         "superseded_by": [case_link(x) for x in later],

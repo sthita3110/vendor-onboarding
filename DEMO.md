@@ -74,7 +74,10 @@ them what to fix."
 *Do:* Review panel → **Request info** → message "Please send a letter on bank letterhead confirming the account holder"
 → reason → your name → Confirm.
 *Say:* "Reason is mandatory; it's in the audit trail with my name. Approve would be disabled if any check hadn't run —
-a reviewer can overrule a judgement, not missing evidence." → **Audit trail** tab.
+a reviewer can overrule a judgement, not missing evidence." → point at the **Waiting for the vendor** banner → **Audit trail** tab.
+*If asked "what happens when the vendor replies?":* **Resubmit for vendor** → replace the cheque / bank letter → submit →
+the case returns to review tagged **Vendor responded**, and the review panel shows *You asked … / Vendor resubmitted
+version 2: replaced …, changed …* — every check ran again, and the reviewer decides with the response in front of them.
 
 ### 5. The hard rule and reapplication — 1½ min (E4)
 *Do:* Open **VO-0005** (Apex, rejected) → show "Debarred" → **Vendor messages**: generic, no list named.

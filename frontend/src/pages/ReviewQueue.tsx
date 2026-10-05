@@ -37,6 +37,7 @@ export function ReviewQueue() {
                       <span className="font-medium text-slate-900">{c.vendor_name}</span>
                       <span className="text-sm text-slate-500">{c.reference}</span>
                       {c.source === 'seed' && <Tag>Seeded sample</Tag>}
+                      {c.vendor_responded && <Tag tone="teal">Vendor responded</Tag>}
                     </div>
                     <div className="mt-1.5"><ReasonChips reasons={c.reasons} max={4} /></div>
                     {c.vendor_actions > 0 && (

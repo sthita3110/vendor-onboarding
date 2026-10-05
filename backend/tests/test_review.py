@@ -186,3 +186,50 @@ def test_cannot_approve_an_interrupted_run():
     assert c["can_review"] is True and c["can_approve"] is False and "didn't complete" in c["approve_blocked_reason"]
     assert review(h1, "approve").status_code == 409
     assert c["can_replay"] is True  # the way forward
+
+
+def test_request_and_response_are_carried_through_the_loop():
+    """Gap A: the reviewer sees what they asked for and exactly what the vendor sent back."""
+    from app.reference.data import SAMPLES_DIR
+
+    e2 = cid("E2")
+    ask = "Please send a letter on bank letterhead confirming the account holder."
+    review(e2, "request_info", reason="confirm account holder", message=ask)
+
+    waiting = case(e2)["request_context"]
+    assert waiting["state"] == "waiting" and waiting["request"]["message"] == ask
+    assert waiting["requested_on_version"] == 1 and waiting["response_version"] is None
+
+    # The vendor responds: a new bank document and a corrected bank name; GST certificate and PAN card unchanged.
+    sample = load_sample("E2")
+    sub = {**sample["case"]["submission"], "bank": {**sample["case"]["submission"]["bank"], "bank_name": "ICICI Bank Ltd"}}
+    cheque = sample["case"]["documents"]["bank_proof"]
+    letter = (SAMPLES_DIR / "E2" / cheque["filename"]).read_bytes()
+    r = client.post(f"/api/cases/{e2}/resubmit", data={"submission": json.dumps(sub)},
+                    files={"bank_proof": ("bank_letter.pdf", letter, "application/pdf")})
+    assert r.status_code == 201
+
+    c = case(e2)
+    ctx = c["request_context"]
+    assert ctx["state"] == "responded" and ctx["response_version"] == 2 and ctx["responded_at"]
+    assert ctx["replaced_documents"] == [{"slot": "bank_proof", "label": "Cheque / bank letter", "filename": "bank_letter.pdf"}]
+    assert ctx["changed_fields"] == [{"field": "Bank name", "before": "ICICI Bank", "after": "ICICI Bank Ltd"}]
+    # Same bank facts -> BANK-03 again -> back to a person, who now sees the request and the response
+    assert c["display_status"] == "INTERNAL_REVIEW" and c["can_review"] is True
+    row = next(x for x in client.get("/api/review-queue").json() if x["id"] == e2)
+    assert row["vendor_responded"] is True
+
+
+def test_request_context_clears_once_the_reviewer_decides():
+    e5 = cid("E5")
+    review(e5, "request_info", reason="bank change", message="Please confirm the new account.")
+    sample = load_sample("E5")
+    client.post(f"/api/cases/{e5}/resubmit", data={"submission": json.dumps(sample["case"]["submission"])}, files={})
+    assert case(e5)["request_context"]["state"] == "responded"
+    review(e5, "approve", reason="Confirmed with the vendor's bank")
+    assert case(e5)["request_context"] is None and case(e5)["vendor_responded"] is False
+
+
+def test_no_request_no_context():
+    assert case(cid("E1"))["request_context"] is None
+    assert all(x["vendor_responded"] is False for x in client.get("/api/review-queue").json())

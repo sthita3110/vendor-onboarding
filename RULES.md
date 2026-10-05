@@ -190,6 +190,11 @@ on the latest run was blocked or errored (it never ran — e.g. SYS-01, or a DOC
 the vendor still owes items (an incomplete application). **Replay is blocked** once a reviewer has acted on the latest run:
 it would override a human decision; new information comes in by Resubmit or Reapply.
 
+**Request → response loop.** After Request info the case shows *"Waiting for the vendor — you asked: …"*. When a new
+version arrives, every check runs again (a human decision never carries over to new evidence); if the case returns to
+review, the reviewer sees what they asked for, which documents were replaced and which form fields changed, and the
+queue tags the case *Vendor responded*.
+
 ## 4d. Vendor messages
 
 | Outcome (system or reviewer) | Message kind | Checklist | Never included |

@@ -1,7 +1,7 @@
 // Case page: the decision, the evidence behind it, what the AI read, and the full history.
 import { useMutation, useQuery } from '@tanstack/react-query'
 import {
-  AlertTriangle, ArrowLeft, CheckCircle2, ChevronDown, ExternalLink, FilePlus2, FileText, History, MinusCircle,
+  AlertTriangle, ArrowLeft, CheckCircle2, ChevronDown, ExternalLink, FilePlus2, FileText, History, MessageSquare, MinusCircle,
   PlayCircle, Upload, XCircle,
 } from 'lucide-react'
 import { useState } from 'react'
@@ -277,6 +277,16 @@ export function CaseView() {
         </div>
       </div>
       {replay.error && <div className="mb-4"><ErrorNote error={replay.error} /></div>}
+      {c.request_context?.state === 'waiting' && !viewingOld && (
+        <div className="mb-4 flex items-start gap-3 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-950 ring-1 ring-amber-200">
+          <MessageSquare className="mt-0.5 size-4 shrink-0 text-amber-700" />
+          <p>
+            <strong className="font-semibold">Waiting for the vendor</strong> since {dateTime(c.request_context.request.at)}.
+            {' '}{c.request_context.request.actor} asked: “{c.request_context.request.message}”
+            {c.can_resubmit && <> — when they reply, use <strong className="font-semibold">Resubmit for vendor</strong>.</>}
+          </p>
+        </div>
+      )}
       {c.previous_case && (
         <div className="mb-4 flex items-start gap-3 rounded-lg bg-violet-50 px-4 py-3 text-sm text-violet-950 ring-1 ring-violet-200">
           <History className="mt-0.5 size-4 shrink-0 text-violet-700" />

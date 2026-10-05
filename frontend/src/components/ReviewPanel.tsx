@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { CheckCircle2, MessageSquare, XCircle } from 'lucide-react'
 import { useState } from 'react'
 import { reviewCase, type CaseDetail, type ReviewActionView } from '../api'
+import { dateTime } from '../lib/format'
 import { cx } from '../lib/style'
 import { Button, Card, ErrorNote, ReasonChips } from './ui'
 
@@ -23,6 +24,38 @@ const CHOICES: { action: Action; label: string; icon: React.ReactNode; tone: str
 ]
 
 const INPUT = 'w-full rounded-lg border-0 px-3 py-2 text-sm ring-1 ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-brand-600 focus:outline-none'
+
+/** What the reviewer asked for, and exactly what the vendor sent back in the new version. */
+function VendorResponse({ c }: { c: CaseDetail }) {
+  const ctx = c.request_context!
+  return (
+    <div className="mt-2 space-y-2 text-sm">
+      <div className="rounded-lg bg-amber-50 px-3 py-2 ring-1 ring-amber-200">
+        <div className="text-xs font-medium text-amber-800">
+          You asked · {ctx.request.actor} · {dateTime(ctx.request.at)} · on version {ctx.requested_on_version}
+        </div>
+        <p className="mt-0.5 text-amber-950">“{ctx.request.message}”</p>
+      </div>
+      <div className="rounded-lg bg-sky-50 px-3 py-2 ring-1 ring-sky-200">
+        <div className="text-xs font-medium text-sky-800">
+          Vendor resubmitted · version {ctx.response_version} · {dateTime(ctx.responded_at)}
+        </div>
+        <ul className="mt-1 space-y-0.5 text-sky-950">
+          <li><span className="text-sky-700">Replaced: </span>
+            {ctx.replaced_documents.length ? ctx.replaced_documents.map((d) => `${d.label} (${d.filename})`).join(', ') : 'no documents'}
+          </li>
+          <li><span className="text-sky-700">Changed: </span>
+            {ctx.changed_fields.length
+              ? ctx.changed_fields.map((f) => `${f.field}: ${f.before ?? '—'} → ${f.after ?? '—'}`).join('; ')
+              : 'no form details'}
+          </li>
+        </ul>
+        <p className="mt-1 text-xs text-sky-700">Every check ran again on this version. Open the Documents tab to read what they sent.</p>
+      </div>
+      {c.reasons.length > 0 && <p className="text-xs text-slate-500">Still flagged after the new version:</p>}
+    </div>
+  )
+}
 
 export function ReviewPanel({ c }: { c: CaseDetail }) {
   const queryClient = useQueryClient()
@@ -48,7 +81,9 @@ export function ReviewPanel({ c }: { c: CaseDetail }) {
   return (
     <Card className="p-4 ring-violet-200">
       <div className="text-xs font-semibold uppercase tracking-wide text-violet-700">Your decision</div>
-      <p className="mt-1 text-sm text-slate-600">The rules couldn't decide this case on their own.</p>
+      {c.request_context?.state === 'responded' ? <VendorResponse c={c} /> : (
+        <p className="mt-1 text-sm text-slate-600">The rules couldn't decide this case on their own.</p>
+      )}
       {c.reasons.length > 0 && <div className="mt-2"><ReasonChips reasons={c.reasons} max={6} /></div>}
 
       <div className="mt-4 grid grid-cols-3 gap-1.5">
