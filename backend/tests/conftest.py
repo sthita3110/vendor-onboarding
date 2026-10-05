@@ -11,7 +11,7 @@ from app.domain.models import CaseInput
 from app.reference.data import SAMPLES_DIR
 from app.rules.evaluate import default_context
 
-SAMPLE_IDS = ["H1", "E1", "E2", "E3", "E3R", "E4", "E5"]
+SAMPLE_IDS = ["H1", "H2", "E1", "E2", "E3", "E3R", "E4", "E5"]
 
 
 def load_sample(cid: str) -> dict:

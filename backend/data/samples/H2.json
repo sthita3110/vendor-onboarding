@@ -1,0 +1,129 @@
+{
+  "id": "H2",
+  "title": "Clean new vendor (not seeded)",
+  "description": "A complete, consistent first-time application \u2014 use it to show a live approval from the form.",
+  "expected": {
+    "status": "APPROVED",
+    "sub_state": null,
+    "failing_rules": []
+  },
+  "scanned_slots": [],
+  "case": {
+    "submission": {
+      "legal_name": "Saffron Weaves Private Limited",
+      "trade_name": null,
+      "entity_type": "company",
+      "address": {
+        "line1": "Plot 14, Naroda GIDC Phase 3",
+        "city": "Ahmedabad",
+        "state": "Gujarat",
+        "pin_code": "382330"
+      },
+      "contact_name": "Kavya Patel",
+      "contact_email": "vendors@saffronweaves.example",
+      "gstin": "24AAHCS2468D1ZH",
+      "pan": "AAHCS2468D",
+      "bank": {
+        "account_holder_name": "Saffron Weaves Private Limited",
+        "account_number": "921020045612378",
+        "ifsc": "UTIB0001156",
+        "bank_name": "Axis Bank"
+      }
+    },
+    "documents": {
+      "gst_certificate": {
+        "slot": "gst_certificate",
+        "filename": "gst_certificate.pdf",
+        "classified_type": "gst_certificate",
+        "fields": {
+          "legal_name": {
+            "value": "SAFFRON WEAVES PRIVATE LIMITED",
+            "quote": "Legal Name: SAFFRON WEAVES PRIVATE LIMITED",
+            "page": 1,
+            "grounded": "text"
+          },
+          "trade_name": {
+            "value": "SAFFRON WEAVES",
+            "quote": "Trade Name, if any: SAFFRON WEAVES",
+            "page": 1,
+            "grounded": "text"
+          },
+          "gstin": {
+            "value": "24AAHCS2468D1ZH",
+            "quote": "Registration Number: 24AAHCS2468D1ZH",
+            "page": 1,
+            "grounded": "text"
+          },
+          "constitution_of_business": {
+            "value": "Private Limited Company",
+            "quote": "Constitution of Business: Private Limited Company",
+            "page": 1,
+            "grounded": "text"
+          },
+          "principal_address": {
+            "value": "Plot 14, Naroda GIDC Phase 3, Ahmedabad, Gujarat 382330",
+            "quote": "Address of Principal Place of Business: Plot 14, Naroda GIDC Phase 3, Ahmedabad, Gujarat 382330",
+            "page": 1,
+            "grounded": "text"
+          },
+          "state": {
+            "value": "Gujarat",
+            "quote": "State: Gujarat",
+            "page": 1,
+            "grounded": "text"
+          }
+        }
+      },
+      "pan_card": {
+        "slot": "pan_card",
+        "filename": "pan_card.pdf",
+        "classified_type": "pan_card",
+        "fields": {
+          "name": {
+            "value": "SAFFRON WEAVES PRIVATE LIMITED",
+            "quote": "Name: SAFFRON WEAVES PRIVATE LIMITED",
+            "page": 1,
+            "grounded": "text"
+          },
+          "pan": {
+            "value": "AAHCS2468D",
+            "quote": "Permanent Account Number: AAHCS2468D",
+            "page": 1,
+            "grounded": "text"
+          }
+        }
+      },
+      "bank_proof": {
+        "slot": "bank_proof",
+        "filename": "cancelled_cheque.pdf",
+        "classified_type": "bank_proof",
+        "fields": {
+          "account_holder_name": {
+            "value": "SAFFRON WEAVES PRIVATE LIMITED",
+            "quote": "For: SAFFRON WEAVES PRIVATE LIMITED",
+            "page": 1,
+            "grounded": "text"
+          },
+          "account_number": {
+            "value": "921020045612378",
+            "quote": "A/c No: 921020045612378",
+            "page": 1,
+            "grounded": "text"
+          },
+          "ifsc": {
+            "value": "UTIB0001156",
+            "quote": "IFSC: UTIB0001156",
+            "page": 1,
+            "grounded": "text"
+          },
+          "bank_name": {
+            "value": "Axis Bank",
+            "quote": "Bank: Axis Bank",
+            "page": 1,
+            "grounded": "text"
+          }
+        }
+      }
+    }
+  }
+}

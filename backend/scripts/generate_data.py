@@ -2,7 +2,7 @@
 
 Writes:
   data/reference/  gst_state_codes.json, vendor_master.csv, debarred.csv, gst_registry.json, penny_drop.json
-  data/samples/    H1.json, E1.json, E2.json, E3.json, E3R.json, E4.json, E5.json
+  data/samples/    H1.json, H2.json, E1.json, E2.json, E3.json, E3R.json, E4.json, E5.json
                    (documents rendered as PDFs by scripts/render_documents.py)
 
 All entities are fictitious. Identifiers are structurally valid: PAN 4th char = holder type,
@@ -244,6 +244,20 @@ def build_cases() -> tuple[list[dict], dict, dict]:
         [gst_doc(legal.upper(), "MERIDIAN OFFICE SOLUTIONS", g, addr), pan_doc(legal.upper(), pan),
          cheque_doc(legal.upper(), "7712345609", "KKBK0007788", "Kotak Mahindra Bank")])
     drop("7712345609", "KKBK0007788", "MERIDIAN OFFICE SOLUTIONS PVT LTD")
+
+    # H2 — clean vendor that is NOT seeded: lets the live demo submit a happy path through the form
+    pan, g = "AAHCS2468D", gstin("24", "AAHCS2468D")
+    legal, addr = "Saffron Weaves Private Limited", "Plot 14, Naroda GIDC Phase 3, Ahmedabad, Gujarat 382330"
+    sub = vendor(legal=legal, line1="Plot 14, Naroda GIDC Phase 3", city="Ahmedabad", state="Gujarat",
+                 pin="382330", contact="Kavya Patel", email="vendors@saffronweaves.example", g=g, pan=pan,
+                 account="921020045612378", ifsc="UTIB0001156", bank="Axis Bank")
+    add("H2", "Clean new vendor (not seeded)",
+        "A complete, consistent first-time application — use it to show a live approval from the form.",
+        {"status": "APPROVED", "sub_state": None, "failing_rules": []}, sub,
+        [gst_doc(legal.upper(), "SAFFRON WEAVES", g, addr), pan_doc(legal.upper(), pan),
+         cheque_doc(legal.upper(), "921020045612378", "UTIB0001156", "Axis Bank")])
+    reg(g, legal.upper(), "SAFFRON WEAVES")
+    drop("921020045612378", "UTIB0001156", "SAFFRON WEAVES PRIVATE LIMITED")
 
     return cases, registry, bank
 

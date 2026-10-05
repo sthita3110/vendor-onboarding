@@ -1,3 +1,5 @@
+> **Historical plan.** This is the plan written before building; some details changed during implementation (e.g. OpenAI instead of Claude, India-only scope, hand-built UI components, Reapply and demo reset added). For what was actually built, see [README.md](README.md).
+
 # Build Plan — Phases 2–6 in detail
 
 Phase 1 (decision core) is done — see [ARCHITECTURE.md](ARCHITECTURE.md), [RULES.md](RULES.md), and the Phase 1 walkthrough in chat. This document is the detailed plan for everything that remains: what each piece is, how it works internally, why it is built that way, what can go wrong, how it shows up in the demo, and what you need to be able to explain.
