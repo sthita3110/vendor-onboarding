@@ -7,8 +7,7 @@ review) or **Rejected** — with every check, its evidence, and the message sent
 **The one design rule:** the AI *reads* documents and *words* messages; deterministic rules make every decision;
 a person decides what the rules can't.
 
-> Built for the Zamp AI Solutions Associate case study, PS-2 (Vendor onboarding). All entities and documents are
-> fictitious specimens. GST registry and bank verification are simulated providers.
+> All entities and documents are fictitious specimens. GST registry and bank verification are simulated providers.
 
 ## What happens to a submission
 
